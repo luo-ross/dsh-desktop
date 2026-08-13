@@ -20,6 +20,7 @@ const HTTP_READY_TIMEOUT_MS = 30_000
 const SHUTDOWN_TIMEOUT_MS = 8_000
 const MAX_DIAGNOSTIC_LENGTH = 8_192
 const BACKEND_READY_MARKER = '.desktop-backend-ready'
+const DEFERRED_UPDATE_MARKER = 'pending-update.json'
 const DESKTOP_THEME_CSS = readFileSync(join(import.meta.dirname, 'codex-theme.css'), 'utf8')
 const DESKTOP_ICON_DATA_URL = `data:image/png;base64,${readFileSync(join(import.meta.dirname, 'build', 'icon.png')).toString('base64')}`
 
@@ -31,6 +32,20 @@ let mainWindow
 let shutdownPromise
 let packagedBackendRoot
 let updaterController
+
+function readDeferredUpdateVersion() {
+  try {
+    const marker = JSON.parse(readFileSync(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), 'utf8'))
+    return typeof marker.version === 'string' ? marker.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function rememberDownloadedUpdate(version) {
+  const marker = `${JSON.stringify({ version })}\n`
+  await writeFile(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), marker, 'utf8')
+}
 
 function backendRequiredPaths(root) {
   return [
@@ -398,7 +413,7 @@ async function installUpdateControl(window) {
           checking: '正在检查…',
           'up-to-date': '已是最新版',
           downloading: state.percent > 0 ? '下载更新 ' + state.percent + '%' : '发现 v' + (state.version ?? ''),
-          downloaded: '重启更新 v' + (state.version ?? ''),
+          downloaded: '立即更新 v' + (state.version ?? ''),
           installing: '正在安装…',
           error: '更新检查失败',
         };
@@ -462,6 +477,8 @@ if (!hasSingleInstanceLock) {
       showMessageBox: (window, options) => dialog.showMessageBox(window, options),
       stopBackend,
       permitQuit: () => { allowQuit = true },
+      deferredUpdateVersion: readDeferredUpdateVersion(),
+      rememberDownloadedUpdate,
     })
     try {
       await preparePackagedBackend()

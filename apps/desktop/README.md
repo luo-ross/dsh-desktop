@@ -12,7 +12,7 @@ The build is not code-signed. Verify the release SHA-256 before accepting an unk
 
 ## Updates
 
-Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; the floating update control reports progress and changes to a restart action when the verified installer is ready. The same control starts a manual check at any time. Choosing restart stops the bundled backend before Electron installs the update and relaunches the application; choosing later leaves the downloaded update ready for the next application exit. Development and unpacked builds do not contact the release feed.
+Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; the floating update control reports progress and changes to an immediate update action when the verified installer is ready. Clicking it directly stops the bundled backend, installs the update, and relaunches the application without another confirmation dialog. If the action is not clicked, the downloaded version installs when the application exits or automatically after the following launch detects the same staged version. The same control starts a manual check at any time. Development and unpacked builds do not contact the release feed.
 
 ## Configure models and workspaces
 

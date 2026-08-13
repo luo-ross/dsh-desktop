@@ -1,4 +1,5 @@
 const DEFAULT_CHECK_DELAY_MS = 12_000
+const DEFERRED_CHECK_DELAY_MS = 1_000
 const DEFAULT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
 
 const UPDATE_ERROR_MESSAGE = '更新服务暂时不可用'
@@ -11,6 +12,8 @@ export function createUpdaterController({
   showMessageBox,
   stopBackend,
   permitQuit,
+  deferredUpdateVersion,
+  rememberDownloadedUpdate = async () => undefined,
   platform = process.platform,
   checkDelayMs = DEFAULT_CHECK_DELAY_MS,
   checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
@@ -22,6 +25,7 @@ export function createUpdaterController({
   let manualCheck = false
   let downloaded = false
   let started = false
+  let installPromise
 
   const publish = (next) => {
     state = { currentVersion: app.getVersion(), ...next }
@@ -76,23 +80,14 @@ export function createUpdaterController({
       await check({ manual: true })
       return
     }
-    const window = getWindow()
-    if (window === undefined || window.isDestroyed()) return
-    const result = await showMessageBox(window, {
-      type: 'question',
-      title: '安装更新',
-      message: `DSH Desktop ${state.version ?? '新版本'} 已准备就绪`,
-      detail: '应用将关闭并安装更新，完成后会自动重新启动。',
-      buttons: ['立即重启安装', '稍后'],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true,
-    })
-    if (result.response !== 0) return
-    publish({ ...state, status: 'installing' })
-    await stopBackend()
-    permitQuit()
-    updater.quitAndInstall(false, true)
+    if (installPromise !== undefined) return await installPromise
+    installPromise = (async () => {
+      publish({ ...state, status: 'installing' })
+      await stopBackend()
+      permitQuit()
+      updater.quitAndInstall(false, true)
+    })()
+    return await installPromise
   }
 
   const start = () => {
@@ -128,14 +123,26 @@ export function createUpdaterController({
       })
     })
     updater.on('update-downloaded', (info) => {
+      const installOnThisLaunch = deferredUpdateVersion === info.version
       downloaded = true
       publish({ status: 'downloaded', version: info.version, percent: 100 })
+      void (async () => {
+        try {
+          await rememberDownloadedUpdate(info.version)
+        } catch (error) {
+          console.error('Failed to remember the downloaded desktop update.', error)
+        }
+        if (installOnThisLaunch) await install()
+      })()
     })
     updater.on('error', () => {
       publish({ status: 'error', message: UPDATE_ERROR_MESSAGE })
     })
 
-    setTimeoutFn(() => void check(), checkDelayMs)
+    setTimeoutFn(
+      () => void check(),
+      deferredUpdateVersion === undefined ? checkDelayMs : DEFERRED_CHECK_DELAY_MS,
+    )
     setIntervalFn(() => void check(), checkIntervalMs)
   }
 

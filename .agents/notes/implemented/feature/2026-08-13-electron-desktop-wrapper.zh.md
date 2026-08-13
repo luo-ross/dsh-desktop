@@ -22,7 +22,7 @@ Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖
 
 Electron 使用无边框窗口、透明拖动区和应用内窗口按钮替代 Windows 原生标题栏。隔离的 preload 桥接仅提供白名单窗口操作和单目录选择；主进程只接受自有窗口的请求。浏览器客户端继续使用现有 Host 目录选择器。
 
-正式安装的 Windows 版本通过 `electron-updater` 使用社区仓库的公开 GitHub Releases。主进程在启动后不久及每六小时检查一次，在后台下载稳定版更新，通过受限 preload 桥接发布进度，并提供悬浮的手动检查和重启安装控件。安装更新前会先终止应用拥有的 Harness 后端，再允许 Electron 的 NSIS 更新器退出并重新启动应用。开发版和免安装构建不会检查发行源。只有安装程序、`latest.yml` 和匹配的 blockmap 一同发布时，该发行版才具备完整更新能力。
+正式安装的 Windows 版本通过 `electron-updater` 使用社区仓库的公开 GitHub Releases。主进程在启动后不久及每六小时检查一次，在后台下载稳定版更新，通过受限 preload 桥接发布进度，并提供悬浮的手动检查和直接安装控件。应用会在用户数据目录中记录已下载版本；点击准备就绪的控件时不再二次确认，而是直接安装。如果用户没有点击，Electron 更新器会在应用退出时安装；后续启动识别到同一待安装版本时也会自动安装。安装更新前会先终止应用拥有的 Harness 后端，再允许 Electron 的 NSIS 更新器退出并重新启动应用。开发版和免安装构建不会检查发行源。只有安装程序、`latest.yml` 和匹配的 blockmap 一同发布时，该发行版才具备完整更新能力。
 
 ## Alternatives considered
 
