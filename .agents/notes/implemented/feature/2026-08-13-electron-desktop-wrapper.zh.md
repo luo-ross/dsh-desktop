@@ -10,13 +10,13 @@ DeepSeek Harness 通过 `dsh web` 提供图形界面，用户需要在终端中�
 
 ## Decision
 
-`apps/desktop` 是复用现有本机回环 Web 载体的 Electron 外壳。主进程持有 Electron 单实例锁，立即显示启用沙箱和上下文隔离的准备窗口，并通过 Electron Node 模式及 HMR 服务要求的 `--expose-internals` 参数启动安装包内的 `dsh web` 后端。后端绑定操作系统分配的回环端口。只有后端输出 URL 且 HTTP 请求实际成功后，应用才会替换准备页面，因此 Loader 在输出 URL 后失败时不会跳转到已损坏的服务。再次启动时会聚焦现有窗口，不会重复解压或启动后端。应用退出时会等待后端停止；只有正常关闭未达到静止状态时，才会强制终止该应用拥有的进程树。
+`apps/desktop` 是复用现有本机回环 Web 载体的 Electron 外壳。主进程持有 Electron 单实例锁，立即显示启用沙箱和上下文隔离的准备窗口，并通过 Electron Node 模式及 HMR 服务要求的 `--expose-internals` 参数启动安装包内的 `dsh web` 后端。后端绑定操作系统分配的回环端口。准备页面采用 DeepSeek 的轻盈浅蓝视觉语言，说明 DSH Desktop 是 DeepSeek Harness 的社区桌面版，在解压和连接过程中保持响应并显示实时进度，后端就绪后直接进入 Harness 主窗口。只有后端输出 URL 且 HTTP 请求实际成功后，应用才会替换准备页面，因此 Loader 在输出 URL 后失败时不会跳转到已损坏的服务。再次启动时会聚焦现有窗口，不会重复解压或启动后端。应用退出时会等待后端停止；只有正常关闭未达到静止状态时，才会强制终止该应用拥有的进程树。
 
 Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖闭包。部署根清单固定使用已发布的 `@deepseek-ai/dsh` 版本，不注入工作区成员，因为 pnpm 部署工作区闭包时会遗漏运行期加载的插件软件包。工作区约束只对该部署依赖及其精确版本放行。首次启动会把归档原子解压到 Electron 用户数据目录下的版本化目录。采用归档是因为 Electron Builder 会从普通附加资源中排除嵌套的 `node_modules`，而 Windows 普通用户也无法安全地重新创建 pnpm 符号链接。暂存部署使用 pnpm 的 hoisted node linker，使归档包含真实目录和原生插件文件。只有完成标记、CLI 入口和 YAML 入口文件都存在时，应用才会复用解压目录；后端启动前会替换中断或不完整的解压结果。
 
 此决定部分取代[GUI 分层与 RPC 协议](../architecture/2026-07-19-gui-layering-and-rpc-protocol.md)中针对 Electron 的 IPC 预留。本机回环载体是已交付的桌面传输方式；IPC 仍可作为后续优化，但不再是交付桌面产品的前置条件。
 
-桌面渲染器会在后端页面加载完成后应用仅限 Electron 的 Codex 风格浅色皮肤。该皮肤覆盖设计令牌和面板几何，不替换 Web 组件，因此工作区、会话、模型、设置、输入框和详情功能仍由现有 Harness UI 提供。浏览器中运行的产品保留原有主题行为。Electron 隐藏原生应用菜单以保持桌面界面简洁；标准文本编辑快捷键仍由渲染器处理。社区发行版命名为 DSH Desktop，使用 `@luo-ross/dsh-desktop` 软件包和 `io.github.luoross.dshdesktop` Windows 应用标识，并明确说明它不是 DeepSeek AI 官方产品。桌面工作区清单把源码元数据指向社区仓库，其他上游发行成员仍保留官方仓库 URL。上游页面加载后，DSH Desktop 窗口继续保持产品标题。桌面窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO，不再显示 Electron 默认标志。
+桌面渲染器会在后端页面加载完成后应用仅限 Electron 的 Codex 风格浅色皮肤。该皮肤覆盖设计令牌和面板几何，不替换 Web 组件，因此工作区、会话、模型、设置、输入框和详情功能仍由现有 Harness UI 提供。浏览器中运行的产品保留原有主题行为。Electron 隐藏原生应用菜单以保持桌面界面简洁；标准文本编辑快捷键仍由渲染器处理。渲染器 body 只预留一次覆盖标题栏的高度，并让根节点填满剩余内容盒，避免再次扣除标题栏高度而在主窗口底部留下空白条。社区发行版命名为 DSH Desktop，使用 `@luo-ross/dsh-desktop` 软件包和 `io.github.luoross.dshdesktop` Windows 应用标识，并明确说明它不是 DeepSeek AI 官方产品。桌面工作区清单把源码元数据指向社区仓库，其他上游发行成员仍保留官方仓库 URL。上游页面加载后，DSH Desktop 窗口继续保持产品标题。桌面窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO，不再显示 Electron 默认标志。
 
 部署完成后，暂存脚本用当前检出中刚构建的产物替换部署后的 `@deepseek-ai/dsh-web-frontend` 和两个桌面版修改过的客户端插件 bundle，并把欢迎页图像复制进前端资源目录。这样既保留已发布的运行时依赖闭包，也能把桌面渲染器改动交付进同一个安装包。首次启动的归档解压在独立的 Electron Node 模式子进程中执行，不阻塞浏览器窗口事件循环；准备页分别显示解压、后端启动和连接阶段。首次运行界面采用 DeepSeek 的浅蓝色视觉语言，说明 DSH 是 DeepSeek Harness 的简称，并在模型配置前标明这是非官方社区桌面版。
 

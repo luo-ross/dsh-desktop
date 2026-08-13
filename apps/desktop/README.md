@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 Download `DSH-Desktop-Setup-<version>.exe` from the repository's [Releases page](https://github.com/luo-ross/dsh-desktop/releases). The NSIS installer supports a custom installation directory and creates desktop and Start menu shortcuts named **DSH Desktop**.
 
-The build is not code-signed. Verify the release SHA-256 before accepting an unknown-publisher warning from Windows SmartScreen. The first launch can take about one minute because the packaged backend must be expanded. Extraction runs in a child process, and the responsive preparation page reports extraction, backend startup, and connection phases until the backend accepts HTTP requests.
+The build is not code-signed. Verify the release SHA-256 before accepting an unknown-publisher warning from Windows SmartScreen. The first launch can take about one minute because the packaged backend must be expanded. Extraction runs in a child process, and a DeepSeek-inspired responsive welcome screen reports extraction, backend startup, and connection phases before opening the main window automatically.
 
 ## Updates
 

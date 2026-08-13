@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
 import { createUpdaterController } from './updater.mjs'
+import { createWelcomePage } from './welcome-page.mjs'
 
 const { autoUpdater } = electronUpdater
 
@@ -15,6 +16,7 @@ const SHUTDOWN_TIMEOUT_MS = 8_000
 const MAX_DIAGNOSTIC_LENGTH = 8_192
 const BACKEND_READY_MARKER = '.desktop-backend-ready'
 const DESKTOP_THEME_CSS = readFileSync(join(import.meta.dirname, 'codex-theme.css'), 'utf8')
+const DESKTOP_ICON_DATA_URL = `data:image/png;base64,${readFileSync(join(import.meta.dirname, 'build', 'icon.png')).toString('base64')}`
 
 let backendProcess
 let backendExtractionProcess
@@ -295,31 +297,10 @@ async function createWindow() {
     event.preventDefault()
     window.setTitle('DSH Desktop · DeepSeek Harness 桌面版')
   })
-  const loadingPage = `<!doctype html>
-<html lang="zh-CN">
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>DSH Desktop</title>
-<style>
-  :root { color-scheme: light; font-family: system-ui, sans-serif; background: #f7f9fb; color: #202124; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; box-sizing: border-box; padding-top: 38px; }
-  body::before { content: ''; position: fixed; inset: 0 138px auto 0; height: 38px; -webkit-app-region: drag; }
-  main { text-align: center; padding: 32px; }
-  h1 { margin: 0 0 12px; font-size: 28px; font-weight: 650; }
-  .product { margin: 0 0 28px; color: #6b7280; font-size: 14px; }
-  p { margin: 0; color: #4b5563; font-size: 15px; }
-  .detail { min-height: 20px; margin-top: 8px; color: #8a919e; font-size: 13px; }
-  .spinner { width: 28px; height: 28px; margin: 28px auto 0; border: 3px solid #dce3ea; border-top-color: #202124; border-radius: 50%; animation: spin 0.9s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-<main>
-  <h1>DSH Desktop</h1>
-  <p class="product">DeepSeek Harness 社区桌面版</p>
-  <p id="startup-status">正在准备桌面环境…</p>
-  <p id="startup-detail" class="detail">首次启动可能需要约一分钟。</p>
-  <div class="spinner"></div>
-</main>
-</html>`
+  const loadingPage = createWelcomePage({
+    iconDataUrl: DESKTOP_ICON_DATA_URL,
+    version: app.getVersion(),
+  })
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
   return window
 }

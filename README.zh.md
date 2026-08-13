@@ -16,7 +16,7 @@ DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek
 
 - 包含 Harness 后端及其生产依赖的完整 Windows 安装程序。
 - 单实例 Electron 窗口，后端仅在操作系统分配的 `127.0.0.1` 端口上运行。
-- 采用 DeepSeek 视觉语言的首次运行介绍页，在模型配置前说明 DSH 是 DeepSeek Harness 的简称。
+- 采用 DeepSeek 官网视觉语言的启动欢迎页，在本地 Harness 后端准备期间保持响应，完成后自动进入主窗口。
 - 受 Codex 启发的浅色桌面皮肤，同时保留上游工作区、会话、模型、设置、工具和权限行为。
 - 沉浸式 Windows 标题栏，以及由 Electron 直接提供的可靠工作目录选择器。
 - 应用、安装程序、任务栏和快捷方式统一使用 DeepSeek 鲸鱼图标。
@@ -26,7 +26,7 @@ DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek
 
 首次启动时，应用需要把随安装包分发的后端展开到 Electron 用户数据目录，可能耗时约一分钟。解压在子进程中运行，准备窗口会保持响应并显示当前阶段；后续启动会复用对应版本的解压结果。
 
-首次运行介绍页会明确说明 DSH Desktop 是 DeepSeek Harness 的非官方社区桌面版。继续进入模型配置后，DeepSeek 提供方会给出官方 API Key 页面直达链接，也可以配置其他受支持的模型提供方。然后从侧边栏添加工作区。Harness 设置、凭据、会话和附件沿用上游 Harness 主目录：设置了 `DSH_HOME` 时使用该目录，否则使用 `~/.dsh`。桌面后端启动时以用户的“文档”目录作为初始文件系统位置。
+启动欢迎页会明确说明 DSH Desktop 是 DeepSeek Harness 的非官方社区桌面版，并显示后端准备进度；主界面准备完成后会自动进入，无需再次点击。进入模型配置后，DeepSeek 提供方会给出官方 API Key 页面直达链接，也可以配置其他受支持的模型提供方。然后从侧边栏添加工作区。Harness 设置、凭据、会话和附件沿用上游 Harness 主目录：设置了 `DSH_HOME` 时使用该目录，否则使用 `~/.dsh`。桌面后端启动时以用户的“文档”目录作为初始文件系统位置。
 
 桌面外壳只监听本机回环地址，关闭渲染进程的 Node.js 集成，并使用系统浏览器打开外部 HTTP 链接。外壳本身不增加遥测；安装包内的上游 Harness 和用户配置的模型提供方仍保留各自的网络行为。
 
