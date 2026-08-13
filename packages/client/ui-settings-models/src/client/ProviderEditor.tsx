@@ -81,6 +81,8 @@ export interface ProviderEditorProps {
   submitLabel?: keyof typeof en
   /** Override the in-flight commit action copy. */
   submitBusyLabel?: keyof typeof en
+  /** Optional contextual action at the leading edge of the footer. */
+  footerLeading?: ReactNode
   /** Close the editor; `changed` reports whether an Apply committed. */
   onClose: (changed: boolean) => void
 }
@@ -500,6 +502,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
         submitLabel={props.submitLabel ?? 'apply'}
         submitBusyLabel={props.submitBusyLabel ?? 'applying'}
         {...props.cancelLabel === undefined ? {} : { cancelLabel: props.cancelLabel }}
+        {...props.footerLeading === undefined ? {} : { leading: props.footerLeading }}
         onCancel={() => { props.onClose(false) }}
         onSubmit={() => { void apply() }}
       />

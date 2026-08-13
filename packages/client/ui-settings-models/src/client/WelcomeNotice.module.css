@@ -1,7 +1,76 @@
-.copy {
+.welcome {
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: clamp(28px, 4vw, 64px) clamp(32px, 7vw, 112px);
+  overflow: auto;
+  color: #172a48;
+  background: #f4f8ff url('./assets/deepseek-welcome-background.png') center / cover no-repeat;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 1220px;
+  margin: 0 auto;
+}
+
+.wordmark {
+  color: #397cf4;
+}
+
+.desktopBadge {
+  padding: 5px 9px;
+  border: 1px solid rgb(57 124 244 / 22%);
+  border-radius: 999px;
+  color: #3973d7;
+  background: rgb(255 255 255 / 58%);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
+  align-items: end;
+  gap: clamp(40px, 7vw, 110px);
+  max-width: 1220px;
+  min-height: calc(100vh - 154px);
+  margin: 24px auto 0;
+  padding: 54px 0 42px;
+  box-sizing: border-box;
+}
+
+.intro {
+  align-self: center;
+}
+
+.eyebrow {
+  margin: 0 0 22px;
+  color: #52709b;
   font-size: 14px;
-  line-height: 24px;
-  color: var(--dsw-alias-label-secondary);
+  line-height: 22px;
+}
+
+.title {
+  max-width: 720px;
+  margin: 0;
+  color: #172a48;
+  font-size: clamp(44px, 5.4vw, 76px);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: 0.1em;
+  outline: none;
+}
+
+.copy {
+  max-width: 660px;
+  margin-top: 30px;
+  color: #536987;
+  font-size: 15px;
+  line-height: 25px;
 }
 
 .copy p {
@@ -9,27 +78,158 @@
 }
 
 .copy p + p {
-  margin-top: 12px;
+  margin-top: 10px;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 38px;
+}
+
+.featureCard {
+  min-height: 122px;
+  padding: 24px 26px;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 20px;
+  box-sizing: border-box;
+  background: rgb(255 255 255 / 52%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 72%), 0 16px 44px rgb(75 112 173 / 8%);
+  backdrop-filter: blur(18px);
+}
+
+.featureCard h3 {
+  margin: 0;
+  color: #3973d7;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.featureCard p {
+  margin: 12px 0 0;
+  color: #536987;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.actionCard {
+  min-height: 420px;
+  padding: clamp(34px, 4vw, 54px);
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 24px;
+  box-sizing: border-box;
+  color: #ffffff;
+  background: rgb(31 91 171 / 91%);
+  box-shadow: 0 28px 80px rgb(31 73 133 / 24%);
+  backdrop-filter: blur(22px);
+}
+
+.actionKicker {
+  margin: 0 0 26px;
+  color: rgb(255 255 255 / 68%);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.actionCard h3 {
+  max-width: 340px;
+  margin: 0;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.actionBody {
+  margin: 20px 0 0;
+  color: rgb(255 255 255 / 74%);
+  font-size: 15px;
+  line-height: 24px;
 }
 
 .error {
-  margin: 16px 0 0;
+  margin: 18px 0 0;
+  color: #ffe3e3;
   font-size: 14px;
   line-height: 22px;
-  color: var(--dsw-alias-state-error-primary);
 }
 
 .actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
+  align-items: center;
+  gap: 18px;
+  margin-top: 38px;
 }
 
 .primary {
-  min-width: 120px;
+  min-width: 132px;
+  color: #245fb9;
+  background: #ffffff;
+}
+
+.primary:hover:not(:disabled) {
+  background: #edf4ff;
+}
+
+.harnessLink {
+  color: rgb(255 255 255 / 78%);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.harnessLink:hover {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    align-items: start;
+    min-height: auto;
+    padding-top: 38px;
+  }
+
+  .actionCard {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 560px) {
+  .welcome {
+    padding: 24px 20px 32px;
+  }
+
+  .desktopBadge {
+    display: none;
+  }
+
+  .layout {
+    gap: 28px;
+    padding-bottom: 0;
+  }
+
+  .title {
+    font-size: 40px;
+    letter-spacing: 0.06em;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .actionCard {
+    padding: 30px 26px;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .primary {
     width: 100%;
   }
