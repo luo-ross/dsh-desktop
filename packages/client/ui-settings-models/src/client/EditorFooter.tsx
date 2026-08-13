@@ -31,6 +31,8 @@ export interface EditorFooterProps {
   submitBusyLabel: keyof typeof en
   /** Dismiss label; defaults to the settings editor copy. */
   cancelLabel?: keyof typeof en
+  /** Optional contextual action pinned to the leading edge of the row. */
+  leading?: ReactNode
   /** Dismiss the card without committing. */
   onCancel: () => void
   /** Run the card's commit. */
@@ -46,6 +48,9 @@ export function EditorFooter(props: EditorFooterProps): ReactNode {
   const { t } = props
   return (
     <div className={styles['editorActions']}>
+      {props.leading === undefined
+        ? null
+        : <div className={styles['editorActionsLeading']}>{props.leading}</div>}
       <button
         type="button"
         className={styles['secondaryButton']}

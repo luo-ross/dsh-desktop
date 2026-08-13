@@ -18,6 +18,10 @@ Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖
 
 桌面渲染器会在后端页面加载完成后应用仅限 Electron 的 Codex 风格浅色皮肤。该皮肤覆盖设计令牌和面板几何，不替换 Web 组件，因此工作区、会话、模型、设置、输入框和详情功能仍由现有 Harness UI 提供。浏览器中运行的产品保留原有主题行为。Electron 隐藏原生应用菜单以保持桌面界面简洁；标准文本编辑快捷键仍由渲染器处理。社区发行版命名为 DSH Desktop，使用 `@luo-ross/dsh-desktop` 软件包和 `io.github.luoross.dshdesktop` Windows 应用标识，并明确说明它不是 DeepSeek AI 官方产品。桌面工作区清单把源码元数据指向社区仓库，其他上游发行成员仍保留官方仓库 URL。上游页面加载后，DSH Desktop 窗口继续保持产品标题。桌面窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO，不再显示 Electron 默认标志。
 
+部署完成后，暂存脚本用当前检出中刚构建的产物替换部署后的 `@deepseek-ai/dsh-web-frontend` 和两个桌面版修改过的客户端插件 bundle，并把欢迎页图像复制进前端资源目录。这样既保留已发布的运行时依赖闭包，也能把桌面渲染器改动交付进同一个安装包。首次启动的归档解压在独立的 Electron Node 模式子进程中执行，不阻塞浏览器窗口事件循环；准备页分别显示解压、后端启动和连接阶段。首次运行界面采用 DeepSeek 的浅蓝色视觉语言，说明 DSH 是 DeepSeek Harness 的简称，并在模型配置前标明这是非官方社区桌面版。
+
+Electron 隐藏原生应用菜单，并用可拖动的覆盖层替代 Windows 标题栏，同时保留原生窗口按钮。隔离的 preload 桥接只向渲染器暴露单目录选择；主进程只接受自有窗口的请求，再打开 Electron 原生文件夹对话框。浏览器客户端继续使用现有 Host 目录选择器。
+
 ## Alternatives considered
 
 **直接加载构建后的 Vite 首页。** 浏览器 bundle 不是独立应用：`dsh web` 会注入启动清单，并拥有 API 和 WebSocket 路由，因此 `loadFile()` 无法提供完整产品。

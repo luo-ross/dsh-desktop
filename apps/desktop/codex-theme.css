@@ -70,6 +70,22 @@ body[data-dsh-desktop-codex-theme] {
   --dsw-shadow-lv2: 0 2px 8px rgb(15 23 42 / 8%), 0 12px 28px rgb(15 23 42 / 5%);
   --dsw-shadow-lv3: 0 12px 36px rgb(15 23 42 / 14%);
   background: #ffffff;
+  box-sizing: border-box;
+  padding-top: 38px;
+}
+
+body[data-dsh-desktop-codex-theme]::before {
+  content: '';
+  position: fixed;
+  z-index: 1000;
+  inset: 0 138px auto 0;
+  height: 38px;
+  background: #f7f9fb;
+  -webkit-app-region: drag;
+}
+
+body[data-dsh-desktop-codex-theme] #root {
+  height: calc(100% - 38px);
 }
 
 body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] {

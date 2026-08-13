@@ -16,14 +16,16 @@ The initial release is not code-signed. Windows SmartScreen may display an unkno
 
 - A self-contained Windows installer with the Harness backend and its production dependencies.
 - A single-instance Electron window that starts the backend on an operating-system-assigned `127.0.0.1` port.
+- A DeepSeek-inspired first-run introduction that explains DSH as DeepSeek Harness before model configuration begins.
 - A light, Codex-inspired desktop skin that keeps the upstream workspace, session, model, settings, tools, and permission behavior intact.
+- An immersive Windows title bar and an Electron-owned folder picker for reliable workspace selection.
 - The DeepSeek whale icon for the application, installer, taskbar, and shortcuts.
 
 ## First run and configuration
 
-The first launch can take about one minute while the bundled backend is expanded into the Electron user-data directory. Later launches reuse that versioned extraction.
+The first launch can take about one minute while the bundled backend is expanded into the Electron user-data directory. Extraction runs in a child process so the preparation window remains responsive and reports its current phase. Later launches reuse that versioned extraction.
 
-Open **Settings → Models** to configure a DeepSeek API key or another supported provider, then add a workspace from the sidebar. Harness settings, credentials, sessions, and attachments use the upstream Harness home: `DSH_HOME` when set, otherwise `~/.dsh`. The desktop backend starts with the user's Documents directory as its initial filesystem location.
+The first-run introduction identifies DSH Desktop as the unofficial community desktop edition of DeepSeek Harness. Continue to model setup, where the DeepSeek provider includes a direct link to the official API-key page, or configure another supported provider. Then add a workspace from the sidebar. Harness settings, credentials, sessions, and attachments use the upstream Harness home: `DSH_HOME` when set, otherwise `~/.dsh`. The desktop backend starts with the user's Documents directory as its initial filesystem location.
 
 The wrapper binds only to loopback, disables Node.js integration in the renderer, and opens external HTTP links in the system browser. It adds no telemetry of its own; the bundled upstream Harness and configured model providers retain their own network behavior.
 

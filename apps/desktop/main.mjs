@@ -3,8 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { get } from 'node:http'
 import { join } from 'node:path'
-import { app, BrowserWindow, Menu, dialog, shell } from 'electron'
-import { extract } from 'tar'
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 
 const STARTUP_TIMEOUT_MS = 60_000
 const HTTP_READY_TIMEOUT_MS = 30_000
@@ -14,6 +13,7 @@ const BACKEND_READY_MARKER = '.desktop-backend-ready'
 const DESKTOP_THEME_CSS = readFileSync(join(import.meta.dirname, 'codex-theme.css'), 'utf8')
 
 let backendProcess
+let backendExtractionProcess
 let backendUrl
 let allowQuit = false
 let mainWindow
@@ -32,6 +32,43 @@ function isPackagedBackendReady(root) {
   return backendRequiredPaths(root).every(path => existsSync(path))
 }
 
+function updateStartupStatus(status, detail = '') {
+  if (mainWindow === undefined || mainWindow.isDestroyed()) return
+  const script = `{
+    const status = document.getElementById('startup-status');
+    const detail = document.getElementById('startup-detail');
+    if (status) status.textContent = ${JSON.stringify(status)};
+    if (detail) detail.textContent = ${JSON.stringify(detail)};
+  }`
+  void mainWindow.webContents.executeJavaScript(script).catch(() => undefined)
+}
+
+function extractBackendArchive(archive, destination) {
+  const helper = join(app.getAppPath(), 'scripts', 'extract-backend.mjs')
+  const child = spawn(process.execPath, [helper, archive, destination], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    stdio: ['ignore', 'ignore', 'pipe'],
+    windowsHide: true,
+  })
+  backendExtractionProcess = child
+
+  return new Promise((resolve, reject) => {
+    let diagnostics = ''
+    child.stderr.on('data', (chunk) => {
+      diagnostics = appendDiagnostic(diagnostics, chunk)
+      process.stderr.write(chunk)
+    })
+    child.once('error', reject)
+    child.once('exit', (code, signal) => {
+      if (backendExtractionProcess === child) backendExtractionProcess = undefined
+      if (code === 0) resolve()
+      else reject(new Error(
+        `DeepSeek Harness backend extraction failed (code ${String(code)}, signal ${String(signal)}).\n${diagnostics}`,
+      ))
+    })
+  })
+}
+
 async function preparePackagedBackend() {
   if (!app.isPackaged) return
   const destination = join(app.getPath('userData'), `backend-${app.getVersion()}`)
@@ -44,7 +81,8 @@ async function preparePackagedBackend() {
   await rm(temporary, { recursive: true, force: true })
   await mkdir(temporary, { recursive: true })
   try {
-    await extract({ file: join(process.resourcesPath, 'backend.tar.gz'), cwd: temporary })
+    updateStartupStatus('首次启动：正在解压内置后端…', '窗口仍可正常移动和响应，请稍候。')
+    await extractBackendArchive(join(process.resourcesPath, 'backend.tar.gz'), temporary)
     const missing = backendRequiredPaths(temporary).slice(1).filter(path => !existsSync(path))
     if (missing.length > 0) {
       throw new Error(`DeepSeek Harness backend archive is incomplete:\n${missing.join('\n')}`)
@@ -163,6 +201,12 @@ function startBackend() {
   })
 }
 
+async function stopChildProcess(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return
+  child.kill('SIGTERM')
+  if (!await waitForExit(child, SHUTDOWN_TIMEOUT_MS)) await forceStopProcessTree(child)
+}
+
 function waitForExit(child, timeoutMs) {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true)
   return new Promise((resolve) => {
@@ -197,18 +241,15 @@ function stopBackend() {
   if (shutdownPromise) return shutdownPromise
   shutdownPromise = (async () => {
     const child = backendProcess
+    const extraction = backendExtractionProcess
     backendProcess = undefined
-    if (!child || child.exitCode !== null || child.signalCode !== null) return
-
-    child.kill('SIGTERM')
-    if (!await waitForExit(child, SHUTDOWN_TIMEOUT_MS)) {
-      await forceStopProcessTree(child)
-    }
+    backendExtractionProcess = undefined
+    await Promise.all([stopChildProcess(child), stopChildProcess(extraction)])
   })()
   return shutdownPromise
 }
 
-function createWindow() {
+async function createWindow() {
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -216,8 +257,18 @@ function createWindow() {
     minHeight: 640,
     show: true,
     backgroundColor: '#ffffff',
-    title: 'DSH Desktop',
+    title: 'DSH Desktop · DeepSeek Harness 桌面版',
     icon: join(app.getAppPath(), 'build', 'icon.ico'),
+    ...(process.platform === 'win32'
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            color: '#f7f9fb',
+            symbolColor: '#34383d',
+            height: 38,
+          },
+        }
+      : {}),
     webPreferences: {
       preload: join(app.getAppPath(), 'preload.cjs'),
       contextIsolation: true,
@@ -237,7 +288,7 @@ function createWindow() {
   })
   window.on('page-title-updated', (event) => {
     event.preventDefault()
-    window.setTitle('DSH Desktop')
+    window.setTitle('DSH Desktop · DeepSeek Harness 桌面版')
   })
   const loadingPage = `<!doctype html>
 <html lang="zh-CN">
@@ -246,18 +297,41 @@ function createWindow() {
 <title>DSH Desktop</title>
 <style>
   :root { color-scheme: light; font-family: system-ui, sans-serif; background: #f7f9fb; color: #202124; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
+  body { min-height: 100vh; margin: 0; display: grid; place-items: center; box-sizing: border-box; padding-top: 38px; }
+  body::before { content: ''; position: fixed; inset: 0 138px auto 0; height: 38px; -webkit-app-region: drag; }
   main { text-align: center; padding: 32px; }
   h1 { margin: 0 0 12px; font-size: 28px; font-weight: 650; }
-  p { margin: 0; color: #6b7280; font-size: 15px; }
+  .product { margin: 0 0 28px; color: #6b7280; font-size: 14px; }
+  p { margin: 0; color: #4b5563; font-size: 15px; }
+  .detail { min-height: 20px; margin-top: 8px; color: #8a919e; font-size: 13px; }
   .spinner { width: 28px; height: 28px; margin: 28px auto 0; border: 3px solid #dce3ea; border-top-color: #202124; border-radius: 50%; animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 </style>
-<main><h1>DSH Desktop</h1><p>正在准备桌面环境，首次启动可能需要约一分钟…</p><div class="spinner"></div></main>
+<main>
+  <h1>DSH Desktop</h1>
+  <p class="product">DeepSeek Harness 社区桌面版</p>
+  <p id="startup-status">正在准备桌面环境…</p>
+  <p id="startup-detail" class="detail">首次启动可能需要约一分钟。</p>
+  <div class="spinner"></div>
+</main>
 </html>`
-  void window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
+  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
   return window
 }
+
+ipcMain.handle('dsh-desktop:pick-directory', async (event) => {
+  if (
+    mainWindow === undefined
+    || mainWindow.isDestroyed()
+    || event.sender.id !== mainWindow.webContents.id
+  ) throw new Error('directory picker request came from an unknown window')
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择工作目录',
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  return result.canceled ? null : result.filePaths[0] ?? null
+})
 
 async function applyDesktopTheme(window) {
   await window.webContents.executeJavaScript(
@@ -291,10 +365,12 @@ if (!hasSingleInstanceLock) {
   app.whenReady().then(async () => {
     if (process.platform === 'win32') app.setAppUserModelId('io.github.luoross.dshdesktop')
     Menu.setApplicationMenu(null)
-    mainWindow = createWindow()
+    mainWindow = await createWindow()
     try {
       await preparePackagedBackend()
+      updateStartupStatus('正在启动 DeepSeek Harness 本地服务…')
       backendUrl = await startBackend()
+      updateStartupStatus('正在连接桌面界面…')
       await waitForBackendHttp(backendUrl)
       if (!mainWindow.isDestroyed()) {
         await mainWindow.loadURL(backendUrl)
