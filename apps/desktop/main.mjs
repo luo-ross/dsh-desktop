@@ -3,22 +3,49 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { get } from 'node:http'
 import { join } from 'node:path'
-import { app, BrowserWindow, Menu, dialog, shell } from 'electron'
-import { extract } from 'tar'
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
+import electronUpdater from 'electron-updater'
+import { createUpdaterController } from './updater.mjs'
+import { createWelcomePage } from './welcome-page.mjs'
+import {
+  applyWindowControl,
+  createWindowControlsMarkup,
+  WINDOW_CONTROLS_CSS,
+} from './window-controls.mjs'
+
+const { autoUpdater } = electronUpdater
 
 const STARTUP_TIMEOUT_MS = 60_000
 const HTTP_READY_TIMEOUT_MS = 30_000
 const SHUTDOWN_TIMEOUT_MS = 8_000
 const MAX_DIAGNOSTIC_LENGTH = 8_192
 const BACKEND_READY_MARKER = '.desktop-backend-ready'
+const DEFERRED_UPDATE_MARKER = 'pending-update.json'
 const DESKTOP_THEME_CSS = readFileSync(join(import.meta.dirname, 'codex-theme.css'), 'utf8')
+const DESKTOP_ICON_DATA_URL = `data:image/png;base64,${readFileSync(join(import.meta.dirname, 'build', 'icon.png')).toString('base64')}`
 
 let backendProcess
+let backendExtractionProcess
 let backendUrl
 let allowQuit = false
 let mainWindow
 let shutdownPromise
 let packagedBackendRoot
+let updaterController
+
+function readDeferredUpdateVersion() {
+  try {
+    const marker = JSON.parse(readFileSync(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), 'utf8'))
+    return typeof marker.version === 'string' ? marker.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function rememberDownloadedUpdate(version) {
+  const marker = `${JSON.stringify({ version })}\n`
+  await writeFile(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), marker, 'utf8')
+}
 
 function backendRequiredPaths(root) {
   return [
@@ -32,11 +59,61 @@ function isPackagedBackendReady(root) {
   return backendRequiredPaths(root).every(path => existsSync(path))
 }
 
+function packagedBackendDestination() {
+  return join(app.getPath('userData'), `backend-${app.getVersion()}`)
+}
+
+function updateStartupStatus(status, detail = '', progress = 18) {
+  if (mainWindow === undefined || mainWindow.isDestroyed()) return
+  const script = `{
+    const status = document.getElementById('startup-status');
+    const detail = document.getElementById('startup-detail');
+    const progress = document.getElementById('startup-progress');
+    const progressEffects = document.getElementById('startup-progress-effects');
+    if (status) status.textContent = ${JSON.stringify(status)};
+    if (detail) detail.textContent = ${JSON.stringify(detail)};
+    if (progress) progress.value = ${JSON.stringify(progress)};
+    if (progressEffects) progressEffects.style.width = ${JSON.stringify(`${progress}%`)};
+  }`
+  void mainWindow.webContents.executeJavaScript(script).catch(() => undefined)
+}
+
+function extractBackendArchive(archive, destination) {
+  const helper = join(app.getAppPath(), 'scripts', 'extract-backend.mjs')
+  const child = spawn(process.execPath, [helper, archive, destination], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    stdio: ['ignore', 'ignore', 'pipe'],
+    windowsHide: true,
+  })
+  backendExtractionProcess = child
+
+  return new Promise((resolve, reject) => {
+    let diagnostics = ''
+    child.stderr.on('data', (chunk) => {
+      diagnostics = appendDiagnostic(diagnostics, chunk)
+      process.stderr.write(chunk)
+    })
+    child.once('error', reject)
+    child.once('exit', (code, signal) => {
+      if (backendExtractionProcess === child) backendExtractionProcess = undefined
+      if (code === 0) resolve()
+      else reject(new Error(
+        `DeepSeek Harness backend extraction failed (code ${String(code)}, signal ${String(signal)}).\n${diagnostics}`,
+      ))
+    })
+  })
+}
+
 async function preparePackagedBackend() {
   if (!app.isPackaged) return
-  const destination = join(app.getPath('userData'), `backend-${app.getVersion()}`)
+  const destination = packagedBackendDestination()
   if (isPackagedBackendReady(destination)) {
     packagedBackendRoot = destination
+    updateStartupStatus(
+      '正在快速启动 DeepSeek Harness…',
+      '已复用本机运行环境，无需重复初始化。',
+      62,
+    )
     return
   }
 
@@ -44,7 +121,8 @@ async function preparePackagedBackend() {
   await rm(temporary, { recursive: true, force: true })
   await mkdir(temporary, { recursive: true })
   try {
-    await extract({ file: join(process.resourcesPath, 'backend.tar.gz'), cwd: temporary })
+    updateStartupStatus('首次启动：正在解压…', '正在准备 DeepSeek Harness 运行环境。', 34)
+    await extractBackendArchive(join(process.resourcesPath, 'backend.tar.gz'), temporary)
     const missing = backendRequiredPaths(temporary).slice(1).filter(path => !existsSync(path))
     if (missing.length > 0) {
       throw new Error(`DeepSeek Harness backend archive is incomplete:\n${missing.join('\n')}`)
@@ -163,6 +241,12 @@ function startBackend() {
   })
 }
 
+async function stopChildProcess(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return
+  child.kill('SIGTERM')
+  if (!await waitForExit(child, SHUTDOWN_TIMEOUT_MS)) await forceStopProcessTree(child)
+}
+
 function waitForExit(child, timeoutMs) {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve(true)
   return new Promise((resolve) => {
@@ -197,18 +281,15 @@ function stopBackend() {
   if (shutdownPromise) return shutdownPromise
   shutdownPromise = (async () => {
     const child = backendProcess
+    const extraction = backendExtractionProcess
     backendProcess = undefined
-    if (!child || child.exitCode !== null || child.signalCode !== null) return
-
-    child.kill('SIGTERM')
-    if (!await waitForExit(child, SHUTDOWN_TIMEOUT_MS)) {
-      await forceStopProcessTree(child)
-    }
+    backendExtractionProcess = undefined
+    await Promise.all([stopChildProcess(child), stopChildProcess(extraction)])
   })()
   return shutdownPromise
 }
 
-function createWindow() {
+async function createWindow({ cachedBackend = false } = {}) {
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -216,8 +297,9 @@ function createWindow() {
     minHeight: 640,
     show: true,
     backgroundColor: '#ffffff',
-    title: 'DSH Desktop',
+    title: 'DSH · DeepSeek Harness 桌面版',
     icon: join(app.getAppPath(), 'build', 'icon.ico'),
+    frame: process.platform !== 'win32',
     webPreferences: {
       preload: join(app.getAppPath(), 'preload.cjs'),
       contextIsolation: true,
@@ -237,26 +319,152 @@ function createWindow() {
   })
   window.on('page-title-updated', (event) => {
     event.preventDefault()
-    window.setTitle('DSH Desktop')
+    window.setTitle('DSH · DeepSeek Harness 桌面版')
   })
-  const loadingPage = `<!doctype html>
-<html lang="zh-CN">
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>DSH Desktop</title>
-<style>
-  :root { color-scheme: light; font-family: system-ui, sans-serif; background: #f7f9fb; color: #202124; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; }
-  main { text-align: center; padding: 32px; }
-  h1 { margin: 0 0 12px; font-size: 28px; font-weight: 650; }
-  p { margin: 0; color: #6b7280; font-size: 15px; }
-  .spinner { width: 28px; height: 28px; margin: 28px auto 0; border: 3px solid #dce3ea; border-top-color: #202124; border-radius: 50%; animation: spin 0.9s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-<main><h1>DSH Desktop</h1><p>正在准备桌面环境，首次启动可能需要约一分钟…</p><div class="spinner"></div></main>
-</html>`
-  void window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
+  const publishWindowState = () => {
+    if (!window.isDestroyed()) {
+      window.webContents.send('dsh-desktop:window-state', { maximized: window.isMaximized() })
+    }
+  }
+  window.on('maximize', publishWindowState)
+  window.on('unmaximize', publishWindowState)
+  const loadingPage = createWelcomePage({
+    cachedBackend,
+    frameless: process.platform === 'win32',
+    iconDataUrl: DESKTOP_ICON_DATA_URL,
+    version: app.getVersion(),
+  })
+  await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
+  await installWindowControls(window)
   return window
+}
+
+ipcMain.handle('dsh-desktop:pick-directory', async (event) => {
+  if (
+    mainWindow === undefined
+    || mainWindow.isDestroyed()
+    || event.sender.id !== mainWindow.webContents.id
+  ) throw new Error('directory picker request came from an unknown window')
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择工作目录',
+    properties: ['openDirectory', 'createDirectory'],
+  })
+  return result.canceled ? null : result.filePaths[0] ?? null
+})
+
+function assertMainWindowSender(event) {
+  if (
+    mainWindow === undefined
+    || mainWindow.isDestroyed()
+    || event.sender.id !== mainWindow.webContents.id
+  ) throw new Error('desktop request came from an unknown window')
+}
+
+ipcMain.handle('dsh-desktop:get-update-state', (event) => {
+  assertMainWindowSender(event)
+  return updaterController?.getState() ?? { status: 'idle', currentVersion: app.getVersion() }
+})
+
+ipcMain.handle('dsh-desktop:check-for-updates', async (event) => {
+  assertMainWindowSender(event)
+  return await updaterController?.check({ manual: true })
+})
+
+ipcMain.handle('dsh-desktop:install-update', async (event) => {
+  assertMainWindowSender(event)
+  await updaterController?.install()
+})
+
+ipcMain.handle('dsh-desktop:window-control', (event, action) => {
+  assertMainWindowSender(event)
+  return applyWindowControl(mainWindow, action)
+})
+
+async function installWindowControls(window) {
+  if (process.platform !== 'win32') return
+  await window.webContents.executeJavaScript(`{
+    const bridge = globalThis.dshDesktop;
+    if (bridge?.windowControl) {
+      if (!document.getElementById('dsh-window-controls')) {
+        document.body.insertAdjacentHTML('beforeend', ${JSON.stringify(createWindowControlsMarkup())});
+      }
+      const controls = document.getElementById('dsh-window-controls');
+      const maximizeButton = controls.querySelector('[data-window-action="toggle-maximize"]');
+      const renderWindowState = (state) => {
+        const maximized = Boolean(state?.maximized);
+        maximizeButton.setAttribute('aria-label', maximized ? '还原' : '最大化');
+        maximizeButton.querySelector('span').textContent = maximized ? '\\uE923' : '\\uE922';
+      };
+      for (const button of controls.querySelectorAll('button[data-window-action]')) {
+        button.addEventListener('click', () => {
+          const action = button.dataset.windowAction;
+          const request = bridge.windowControl(action);
+          if (action === 'close') void request.catch(() => {});
+          else void request.then(renderWindowState);
+        });
+      }
+      void bridge.windowControl('get-state').then(renderWindowState);
+      const unsubscribe = bridge.onWindowState?.(renderWindowState);
+      if (unsubscribe) window.addEventListener('beforeunload', unsubscribe, { once: true });
+    }
+  }`)
+}
+
+async function installUpdateControl(window) {
+  await window.webContents.executeJavaScript(`{
+    const bridge = globalThis.dshDesktop;
+    let actions = document.getElementById('dsh-desktop-top-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.id = 'dsh-desktop-top-actions';
+      actions.setAttribute('aria-label', 'DSH 快捷操作');
+      document.body.append(actions);
+    }
+    if (!document.getElementById('dsh-desktop-repository')) {
+      const repository = document.createElement('a');
+      repository.id = 'dsh-desktop-repository';
+      repository.href = 'https://github.com/luo-ross/dsh-desktop';
+      repository.target = '_blank';
+      repository.rel = 'noopener noreferrer';
+      repository.textContent = 'GitHub 仓库';
+      repository.setAttribute('aria-label', '在浏览器中打开 DSH GitHub 仓库');
+      actions.append(repository);
+    }
+    if (bridge?.checkForUpdates && !document.getElementById('dsh-desktop-update')) {
+      const button = document.createElement('button');
+      button.id = 'dsh-desktop-update';
+      button.type = 'button';
+      button.hidden = true;
+      button.setAttribute('aria-label', '检查 DSH 更新');
+      let status = 'idle';
+      const render = (state) => {
+        status = state.status;
+        const labels = {
+          idle: '检查更新',
+          checking: '正在检查…',
+          'up-to-date': '已是最新版',
+          downloading: state.percent > 0 ? '下载更新 ' + state.percent + '%' : '发现 v' + (state.version ?? ''),
+          downloaded: '立即更新 v' + (state.version ?? ''),
+          installing: '正在安装…',
+          error: '更新检查失败',
+        };
+        button.textContent = labels[state.status] ?? '检查更新';
+        button.dataset.status = state.status;
+        button.hidden = !['downloading', 'downloaded', 'installing'].includes(state.status);
+        button.disabled = state.status === 'checking' || state.status === 'installing';
+        button.title = state.message ?? ('DSH ' + state.currentVersion);
+      };
+      button.addEventListener('click', () => {
+        if (status === 'downloaded') void bridge.installUpdate();
+        else void bridge.checkForUpdates();
+      });
+      actions.append(button);
+      void bridge.getUpdateState().then(render);
+      const unsubscribe = bridge.onUpdateState(render);
+      window.addEventListener('beforeunload', unsubscribe, { once: true });
+    }
+  }`)
 }
 
 async function applyDesktopTheme(window) {
@@ -264,6 +472,9 @@ async function applyDesktopTheme(window) {
     "document.body.setAttribute('data-dsh-desktop-codex-theme', '')",
   )
   await window.webContents.insertCSS(DESKTOP_THEME_CSS)
+  await window.webContents.insertCSS(WINDOW_CONTROLS_CSS)
+  await installWindowControls(window)
+  await installUpdateControl(window)
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
@@ -291,18 +502,33 @@ if (!hasSingleInstanceLock) {
   app.whenReady().then(async () => {
     if (process.platform === 'win32') app.setAppUserModelId('io.github.luoross.dshdesktop')
     Menu.setApplicationMenu(null)
-    mainWindow = createWindow()
+    const cachedBackend = app.isPackaged
+      && isPackagedBackendReady(packagedBackendDestination())
+    mainWindow = await createWindow({ cachedBackend })
+    updaterController = createUpdaterController({
+      updater: autoUpdater,
+      app,
+      getWindow: () => mainWindow,
+      showMessageBox: (window, options) => dialog.showMessageBox(window, options),
+      stopBackend,
+      permitQuit: () => { allowQuit = true },
+      deferredUpdateVersion: readDeferredUpdateVersion(),
+      rememberDownloadedUpdate,
+    })
     try {
       await preparePackagedBackend()
+      updateStartupStatus('正在启动 DeepSeek Harness 服务…', '运行环境已准备就绪。', 72)
       backendUrl = await startBackend()
+      updateStartupStatus('正在连接 DeepSeek Harness…', '服务已启动，即将进入主界面。', 90)
       await waitForBackendHttp(backendUrl)
       if (!mainWindow.isDestroyed()) {
         await mainWindow.loadURL(backendUrl)
         await applyDesktopTheme(mainWindow)
+        updaterController.start()
       }
     } catch (error) {
       dialog.showErrorBox(
-        'DSH Desktop 启动失败',
+        'DSH 启动失败',
         error instanceof Error ? error.message : String(error),
       )
       app.quit()

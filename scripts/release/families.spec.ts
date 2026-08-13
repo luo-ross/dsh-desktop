@@ -30,6 +30,13 @@ describe('release families', () => {
     expect(vendor.tagFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v4.0.0-rc.7')
   })
 
+  it('keeps community desktop applications outside the upstream npm release family', () => {
+    expect(releaseFamily('dsh').patterns).toEqual([
+      'packages/*/*/package.json',
+      'apps/{cli,web}/package.json',
+    ])
+  })
+
   it('rejects a family whose members disagree on the shared version', () => {
     const dsh = releaseFamily('dsh')
     const members = [member('apps/cli', '@deepseek-ai/dsh'), { ...member('apps/web', '@deepseek-ai/dsh-web-frontend'), version: '0.0.2' }]

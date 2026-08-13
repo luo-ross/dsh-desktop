@@ -63,9 +63,9 @@ function mount(version?: string, mutateImpl: () => Promise<unknown> = () => Prom
 describe('WelcomeNotice', () => {
   it('uses the exact owner copy in both GUI locales', () => {
     expect(WELCOME_NOTICE_COPY.en).toEqual({
-      title: 'Internal Testing Notice',
-      body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
-      continueLabel: 'Continue',
+      title: 'Welcome to DSH Desktop',
+      body: 'DSH is short for DeepSeek Harness. DSH Desktop is a community-maintained desktop edition that makes DeepSeek Harness ready to use on Windows.\n\nDeepSeek Harness 0.1 is evolving quickly, and its core plugins and foundational APIs may continue to change. Developer feedback is welcome.',
+      continueLabel: 'Start setup',
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
@@ -77,10 +77,12 @@ describe('WelcomeNotice', () => {
     for (const paragraph of WELCOME_NOTICE_COPY.zh.body.split('\n\n')) {
       expect(screen.getByText(paragraph, { exact: true })).toBeTruthy()
     }
-    expect(dialog.querySelectorAll('p')).toHaveLength(2)
+    expect(dialog.querySelectorAll('p').length).toBeGreaterThanOrEqual(7)
     expect(dialog.querySelectorAll('button')).toHaveLength(1)
     expect(screen.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel })).toBeTruthy()
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: WELCOME_NOTICE_COPY.zh.title }))
+    const harnessLink = screen.getByRole<HTMLAnchorElement>('link', { name: zh.welcomeHarnessLink })
+    expect(harnessLink.href).toBe('https://www.deepseek.com/harness/')
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: zh.welcomeHero }))
     expect(h.appRoot.inert).toBe(true)
 
     fireEvent.keyDown(document, { key: 'Escape' })

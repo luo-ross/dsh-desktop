@@ -63,10 +63,11 @@ jobs:
   node-24:
     if: github.event_name == 'pull_request'
     runs-on: >-
-      ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+      ${{ github.repository == 'deepseek-ai/deepseek-harness'
+          && vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-ai/deepseek-harness' && 'dsh-ubuntu-24-04-16core' || 'ubuntu-24.04') }}
     name: node 24 / static
     env:
       DSH_GATE_CONCURRENCY: '8'
@@ -115,10 +116,11 @@ jobs:
   node-24-coverage:
     if: github.event_name == 'pull_request'
     runs-on: >-
-      ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+      ${{ github.repository == 'deepseek-ai/deepseek-harness'
+          && vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-ai/deepseek-harness' && 'dsh-ubuntu-24-04-16core' || 'ubuntu-24.04') }}
     name: node 24 / coverage
     env:
       # The hosted 16-core runner uses six coverage workers. The failover pool
@@ -178,10 +180,11 @@ jobs:
   node-24-consumers:
     if: github.event_name == 'pull_request'
     runs-on: >-
-      ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
+      ${{ github.repository == 'deepseek-ai/deepseek-harness'
+          && vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-ai/deepseek-harness' && 'dsh-ubuntu-24-04-16core' || 'ubuntu-24.04') }}
     name: node 24 / snapshots and artifacts
     env:
       DSH_GATE_CONCURRENCY: '8'
@@ -447,10 +450,11 @@ jobs:
   windows-native:
     if: github.event_name == 'pull_request'
     runs-on: >-
-      ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
+      ${{ github.repository == 'deepseek-ai/deepseek-harness'
+          && vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
-          || 'dsh-windows-2025-16core' }}
+          || (github.repository == 'deepseek-ai/deepseek-harness' && 'dsh-windows-2025-16core' || 'windows-2025') }}
     name: windows node 24 / native complete
     timeout-minutes: 60
     env:
@@ -572,7 +576,7 @@ jobs:
   # tool caches make them redundant (and saving here would poison the hosted
   # cache namespace with self-hosted paths).
   serial-linux-selfhosted:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository == 'deepseek-ai/deepseek-harness' && github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: serial / linux (self-hosted standby)
     runs-on: [self-hosted, linux, x64, vm-backup]
     steps:
@@ -656,7 +660,7 @@ jobs:
   # and tool caches make them redundant (and saving here would poison the
   # hosted cache namespace with self-hosted paths).
   serial-windows:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.repository == 'deepseek-ai/deepseek-harness' && github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: serial / windows (self-hosted standby)
     runs-on: [self-hosted, dsh-win-ci, windows]
     timeout-minutes: 60
