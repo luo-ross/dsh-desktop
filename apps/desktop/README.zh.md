@@ -6,7 +6,7 @@
 
 ## 安装与启动
 
-从本仓库的 [Releases 页面](https://github.com/luo-ross/dsh-desktop/releases)下载 `DSH-Desktop-Setup-<version>.exe`。NSIS 安装程序支持自定义安装目录，并创建名为 **DSH Desktop** 的桌面与开始菜单快捷方式。
+从本仓库的 [Releases 页面](https://github.com/luo-ross/dsh-desktop/releases)下载 `DSH-Desktop-Windows-x64-Setup-<version>.exe`。安装包及其差分更新 blockmap 的文件名都会包含 `Windows-x64`，明确标注支持的平台和架构。NSIS 安装程序支持自定义安装目录，并创建名为 **DSH Desktop** 的桌面与开始菜单快捷方式。
 
 当前构建尚未进行代码签名。接受 Windows SmartScreen 的未知发布者提示前，请核对发行页面公布的 SHA-256。首次启动可能需要约一分钟，因为应用必须先展开随安装包分发的后端。解压在子进程中执行；采用 DeepSeek 官网视觉语言且保持响应的欢迎页会分别显示解压、后端启动和连接阶段，后端能够接受 HTTP 请求后自动进入主窗口。
 
