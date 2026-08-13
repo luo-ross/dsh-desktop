@@ -1,42 +1,36 @@
-# Frameless desktop window QA
+# Frameless title-bar safe-area QA
 
-- Source visual truth: `C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-9cc38e9d-4bb2-46b3-a03b-be38042cf8fa.png`.
-- Implementation captures: `.artifacts/design-qa/frameless-welcome-v0.1.4.png` and `.artifacts/design-qa/frameless-main-v0.1.4.png`.
-- Source pixels: 1440 x 961 at 1x density.
-- Implementation pixels and CSS viewport: 1366 x 720 at device scale factor 1.
-- State: packaged Windows `win-unpacked` build, first-run welcome followed by the main Harness window.
-- Browser classification: the in-app Browser is available but cannot capture native Electron window chrome; the packaged application was exercised and captured through Windows Computer Use instead.
-- Density normalization: both captures were reviewed at native 1x density. The full views retain their original aspect ratios; the focused comparison uses the first 100 logical pixels at the top edge, where the requested frame change occurs.
+- Source visual truth: `.artifacts/design-qa/titlebar-overlap-reference-v0.1.7.png` (user-provided packaged-app screenshot).
+- Implementation capture: `.artifacts/design-qa/titlebar-safe-area-v0.1.7.png` (packaged Windows `win-unpacked` v0.1.7 build).
+- Combined comparison: `.artifacts/design-qa/titlebar-safe-area-comparison-v0.1.7.png`.
+- Source viewport: 1450 × 457 pixels at 1x density.
+- Implementation viewport: 1366 × 720 pixels at 1x density; the comparison uses the first 430 pixels at the top edge, where the reported collision occurs.
+- Capture path: the in-app Browser cannot include native Electron window chrome, so the packaged application was exercised and captured through Windows Computer Use.
 
-## Full-view comparison evidence
+## Visual comparison
 
-The source and packaged implementation were opened together in one comparison input. The prior source shows a distinct 38-pixel title-bar row above the sidebar and main surface. In the implementation, the sidebar and main canvas begin at the client area's top edge, while the update action and app-owned window controls float over otherwise unchanged product content. The main surface also reaches the bottom edge without a blank strip.
+The reference and packaged implementation were placed together in one comparison input. In the reference, session metadata and the `Session log` action occupy the same top-right strip as the app-owned minimize, maximize, and close controls. In v0.1.7, the center column begins below a 38-pixel safe area matching the controls' height. The sidebar remains flush with the top edge, preserving the immersive layout, while the update action remains isolated in the title-bar strip. The details column receives the same safe area plus its existing 12-pixel inset.
 
-## Focused region comparison evidence
+## Runtime evidence
 
-The top 100-pixel region was checked at native density because it contains the complete requested change. The source separates the product with a solid title-bar band; the implementation has no band, no native caption, and no extra top padding. The DeepSeek logo row begins at y=0 on the left, and the three window controls remain visually and semantically distinct on the right.
-
-## Interaction and runtime evidence
-
-- Startup welcome rendered with live extraction and backend status, then navigated automatically to the Harness main window.
-- The maximize button was clicked and changed its accessible name and icon to restore; clicking again returned it to maximize.
-- Double-clicking the transparent top drag region maximized the window, proving that the frameless surface still supports native window movement behavior.
-- Minimize, maximize/restore, and close controls are exposed through a fixed preload action set; unknown actions are rejected by the tested main-process helper.
-- No startup error dialog, framework overlay, or blank render appeared during the packaged run.
+- The packaged application launched successfully and stayed responsive through first-run extraction and backend startup.
+- The welcome screen transitioned automatically to the live Harness main window.
+- The main window rendered without a native title bar, startup error, blank strip, or framework overlay.
+- Minimize, maximize, and close controls remained visible and distinct in the reserved top-right strip.
+- Main content starts below the window controls and continues to the bottom edge.
 
 ## Required fidelity surfaces
 
-- Typography: the existing Harness and welcome-page system fonts, sizes, weights, and wrapping are unchanged; Windows controls use the native Segoe icon font.
-- Spacing and layout: the obsolete 38-pixel top reservation is removed, the root occupies the full viewport, and controls do not displace sidebar or composer geometry.
-- Colors and tokens: existing Codex-inspired light tokens remain unchanged; window controls are transparent until hover, so no replacement title-bar band is introduced.
-- Image and asset quality: the real packaged DeepSeek mark remains intact; no image asset was replaced or approximated.
-- Copy and content: product copy is unchanged. Accessible Chinese labels identify minimize, maximize/restore, and close actions.
+- Typography, colors, assets, and upstream Harness component behavior are unchanged.
+- Only Electron's center and details layout geometry changes; browser-hosted Harness clients are unaffected.
+- The 38-pixel inset matches the app-owned control height and does not introduce a visible title-bar band.
+- Sidebar branding and navigation remain aligned to the window's top edge.
 
-## Comparison history
+## Findings
 
-1. P1: the source and v0.1.3 implementation reserved a visible 38-pixel Electron title-bar overlay, contradicting the requested immersive treatment. Fixed by using a Windows frameless `BrowserWindow`, removing body top padding, and making the application root fill the viewport.
-2. P1: removing the native frame would otherwise remove essential window actions. Fixed with app-owned controls, maximize-state synchronization, a transparent drag region, and a sender-validated IPC action whitelist.
-3. Post-fix evidence: the packaged v0.1.4 welcome and main-window captures show no title-bar row; maximize/restore and drag-region interactions passed.
+1. P1: app-owned window controls could cover session actions and metadata in the top-right of the center column. Fixed with a 38-pixel center-column safe area.
+2. P1: details content could enter the same control strip when the inspector was open. Fixed with the same safe area while retaining the existing 12-pixel card inset.
+3. Post-fix packaged evidence shows the title-bar strip and main content as separate, non-overlapping regions.
 
 No actionable P0, P1, or P2 findings remain.
 

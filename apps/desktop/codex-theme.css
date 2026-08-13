@@ -1,6 +1,7 @@
 /* Electron-only visual skin matching the light Codex desktop workspace. */
 body[data-dsh-desktop-codex-theme] {
   color-scheme: light;
+  --dsh-desktop-titlebar-safe-area: 38px;
   --dsw-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --dsw-alias-bg-base: #ffffff;
   --dsw-alias-bg-layer-1: #ffffff;
@@ -139,6 +140,8 @@ body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] [role="treeitem"] {
 }
 
 body[data-dsh-desktop-codex-theme] [class*="_centerCol_"] {
+  box-sizing: border-box;
+  padding-top: var(--dsh-desktop-titlebar-safe-area);
   background: #ffffff;
 }
 
@@ -165,7 +168,7 @@ body[data-dsh-desktop-codex-theme] [class*="_card_"]:has(textarea) button[type="
 
 body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
   box-sizing: border-box;
-  padding: 12px 12px 12px 0;
+  padding: calc(var(--dsh-desktop-titlebar-safe-area) + 12px) 12px 12px 0;
   border-left: 0;
   background: #ffffff;
 }
