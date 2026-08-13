@@ -11,6 +11,7 @@
     "sandbox-exec",
     "tar",
     "taskkill",
+    "taskkill.exe",
     "where.exe"
   ],
   "ignoreWorkspaces": [
@@ -738,6 +739,25 @@
       ],
       "ignoreDependencies": [
         "@deepseek-ai/.+"
+      ]
+    },
+    "apps/desktop": {
+      "entry": [
+        "preload.cjs",
+        "updater.mjs",
+        "welcome-page.mjs",
+        "window-controls.mjs",
+        "scripts/**/*.mjs"
+      ],
+      "project": [
+        "*.mjs",
+        "*.cjs",
+        "scripts/**/*.mjs"
+      ]
+    },
+    "apps/desktop-backend": {
+      "ignoreDependencies": [
+        "@deepseek-ai/dsh"
       ]
     },
     "packages/client/modules": {
