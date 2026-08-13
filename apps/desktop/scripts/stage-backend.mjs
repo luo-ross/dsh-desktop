@@ -27,6 +27,7 @@ const deployedFrontend = resolve(
   'dist',
 )
 const clientOverlays = [
+  ['ui-layout', '@deepseek-ai/dsh-client-ui-layout'],
   ['ui-settings-models', '@deepseek-ai/dsh-client-ui-settings-models'],
   ['ui-directory-picker-native', '@deepseek-ai/dsh-client-ui-directory-picker-native'],
 ]

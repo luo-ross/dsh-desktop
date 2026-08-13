@@ -1,10 +1,10 @@
-# DSH Desktop
+# DSH
 
 English | [中文](README.zh.md)
 
-DSH Desktop is an unofficial community desktop edition of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It packages the upstream Web UI and local backend into an Electron application for Windows, so the Harness can run without a separately managed terminal or browser tab.
+DSH is an unofficial community desktop edition of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It packages the upstream Web UI and local backend into an Electron application for Windows, so the Harness can run without a separately managed terminal or browser tab.
 
-> DSH Desktop is a community project and is not an official DeepSeek AI product. DeepSeek Harness and the whale mark belong to their respective owner.
+> DSH is a community project and is not an official DeepSeek AI product. DeepSeek Harness and the whale mark belong to their respective owner.
 
 ## Run
 
@@ -16,17 +16,17 @@ The initial release is not code-signed. Windows SmartScreen may display an unkno
 
 - A self-contained Windows installer with the Harness backend and its production dependencies.
 - A single-instance Electron window that starts the backend on an operating-system-assigned `127.0.0.1` port.
-- A DeepSeek-inspired first-run introduction that explains DSH as DeepSeek Harness before model configuration begins.
+- A DeepSeek-inspired startup welcome screen that stays responsive while the local Harness backend is prepared, then opens the main window automatically.
 - A light, Codex-inspired desktop skin that keeps the upstream workspace, session, model, settings, tools, and permission behavior intact.
-- An immersive Windows title bar and an Electron-owned folder picker for reliable workspace selection.
+- A frameless immersive Windows window with in-app controls, plus an Electron-owned folder picker for reliable workspace selection.
 - The DeepSeek whale icon for the application, installer, taskbar, and shortcuts.
-- Automatic stable-release checks, background downloads, and restart-to-install updates through GitHub Releases.
+- Automatic stable-release checks and background downloads through GitHub Releases, with one-click installation or automatic installation on the next launch.
 
 ## First run and configuration
 
 The first launch can take about one minute while the bundled backend is expanded into the Electron user-data directory. Extraction runs in a child process so the preparation window remains responsive and reports its current phase. Later launches reuse that versioned extraction.
 
-The first-run introduction identifies DSH Desktop as the unofficial community desktop edition of DeepSeek Harness. Continue to model setup, where the DeepSeek provider includes a direct link to the official API-key page, or configure another supported provider. Then add a workspace from the sidebar. Harness settings, credentials, sessions, and attachments use the upstream Harness home: `DSH_HOME` when set, otherwise `~/.dsh`. The desktop backend starts with the user's Documents directory as its initial filesystem location.
+The startup welcome screen identifies DSH as the unofficial community desktop edition of DeepSeek Harness and reports backend preparation progress. It closes automatically when the main Harness window is ready. In model setup, the DeepSeek provider includes a direct link to the official API-key page, or you can configure another supported provider. Then add a workspace from the sidebar. Harness settings, credentials, sessions, and attachments use the upstream Harness home: `DSH_HOME` when set, otherwise `~/.dsh`. The desktop backend starts with the user's Documents directory as its initial filesystem location.
 
 The wrapper binds only to loopback, disables Node.js integration in the renderer, and opens external HTTP links in the system browser. It adds no telemetry of its own; the bundled upstream Harness and configured model providers retain their own network behavior.
 
