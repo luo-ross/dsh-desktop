@@ -9,8 +9,34 @@
   margin-top: 24px;
 }
 
+.apiLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 18px;
+  text-decoration: none;
+}
+
+.apiLink:hover {
+  color: var(--dsw-alias-label-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.apiLink:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--dsw-alias-border-focus);
+  outline-offset: 3px;
+}
+
 @media (max-width: 560px) {
   .editor {
     margin-top: 20px;
+  }
+
+  .apiLink {
+    max-width: 180px;
   }
 }
