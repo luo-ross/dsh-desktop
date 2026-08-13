@@ -235,6 +235,35 @@ describe('E2B e2e workflow', () => {
   })
 })
 
+describe('DeepSeek real-API e2e workflow', () => {
+  it('skips every setup and test step when the optional repository key is absent', () => {
+    const workflow = loadWorkflow('.github/workflows/e2e.yml')
+    const job = workflowJob(workflow, 'e2e')
+    if (!Array.isArray(job.steps)) throw new TypeError('DeepSeek e2e workflow must define steps')
+
+    const steps = job.steps.filter(isRecord)
+    const presence = steps.find(step => step.id === 'api-key')
+    expect(presence).toMatchObject({
+      env: { DEEPSEEK_API_KEY: '${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}' },
+    })
+    expect(presence?.run).toContain('available=false')
+    expect(presence?.run).toContain('::notice::')
+    expect(presence?.run).not.toContain('exit 1')
+
+    const gatedSteps = steps.filter(step => step !== presence)
+    expect(gatedSteps.length).toBeGreaterThan(0)
+    for (const step of gatedSteps) {
+      expect(step.if).toBe("steps.api-key.outputs.available == 'true'")
+    }
+
+    const secretBearingSteps = steps.filter(step => isRecord(step.env) && 'DEEPSEEK_API_KEY' in step.env)
+    expect(secretBearingSteps.map(step => step.name)).toEqual([
+      'Check for optional DEEPSEEK_API_KEY',
+      'E2E tests (real DeepSeek API)',
+    ])
+  })
+})
+
 describe('Python release workflows', () => {
   it('keeps complete wheel validation separate from protected public publication', () => {
     const workflow = loadWorkflow('.github/workflows/python-release.yml')
