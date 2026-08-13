@@ -1,1 +1,5 @@
-export function createWelcomePage(options: { iconDataUrl: string; version: string }): string
+export function createWelcomePage(options: {
+  frameless: boolean
+  iconDataUrl: string
+  version: string
+}): string

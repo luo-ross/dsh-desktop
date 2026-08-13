@@ -1,34 +1,43 @@
-# Desktop welcome and viewport QA
+# Frameless desktop window QA
 
-- Source visual truth: `https://www.deepseek.com/` and the user-provided startup/main-window screenshots.
-- Source capture: `.artifacts/design-qa/deepseek-home-reference.png` (1265 x 710 px).
-- Implementation captures: `.artifacts/design-qa/welcome-v0.1.3.png` and `.artifacts/design-qa/main-window-v0.1.3.png` (1366 x 720 px).
-- Viewport: packaged Windows Electron window at 1366 x 720 logical pixels, device scale factor 1.
-- State: first backend extraction welcome screen, followed by the automatically loaded main Harness window.
-- Density normalization: both source and implementation captures were reviewed at their native 1x logical-pixel density; the full-view comparison aligned them by height without resampling either source.
+- Source visual truth: `C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-9cc38e9d-4bb2-46b3-a03b-be38042cf8fa.png`.
+- Implementation captures: `.artifacts/design-qa/frameless-welcome-v0.1.4.png` and `.artifacts/design-qa/frameless-main-v0.1.4.png`.
+- Source pixels: 1440 x 961 at 1x density.
+- Implementation pixels and CSS viewport: 1366 x 720 at device scale factor 1.
+- State: packaged Windows `win-unpacked` build, first-run welcome followed by the main Harness window.
+- Browser classification: the in-app Browser is available but cannot capture native Electron window chrome; the packaged application was exercised and captured through Windows Computer Use instead.
+- Density normalization: both captures were reviewed at native 1x density. The full views retain their original aspect ratios; the focused comparison uses the first 100 logical pixels at the top edge, where the requested frame change occurs.
 
 ## Full-view comparison evidence
 
-The combined comparison at `.artifacts/design-qa/welcome-comparison.png` shows the official reference on the left and the packaged welcome screen on the right. The implementation preserves the reference's pale blue field, blue DeepSeek brand, left-aligned exploration headline, two light feature cards, and a large dark-blue right card while replacing website navigation and recruiting content with desktop startup status.
+The source and packaged implementation were opened together in one comparison input. The prior source shows a distinct 38-pixel title-bar row above the sidebar and main surface. In the implementation, the sidebar and main canvas begin at the client area's top edge, while the update action and app-owned window controls float over otherwise unchanged product content. The main surface also reaches the bottom edge without a blank strip.
 
-## Focused region evidence
+## Focused region comparison evidence
 
-The right product card and its status panel were checked in the full-resolution packaged capture because the text, spacing, progress indicator, and corner radius are readable at 1x. The main-window capture was checked at its bottom edge: the sidebar and root application surface now extend to the client boundary without the previous 38-pixel blank strip.
+The top 100-pixel region was checked at native density because it contains the complete requested change. The source separates the product with a solid title-bar band; the implementation has no band, no native caption, and no extra top padding. The DeepSeek logo row begins at y=0 on the left, and the three window controls remain visually and semantically distinct on the right.
+
+## Interaction and runtime evidence
+
+- Startup welcome rendered with live extraction and backend status, then navigated automatically to the Harness main window.
+- The maximize button was clicked and changed its accessible name and icon to restore; clicking again returned it to maximize.
+- Double-clicking the transparent top drag region maximized the window, proving that the frameless surface still supports native window movement behavior.
+- Minimize, maximize/restore, and close controls are exposed through a fixed preload action set; unknown actions are rejected by the tested main-process helper.
+- No startup error dialog, framework overlay, or blank render appeared during the packaged run.
 
 ## Required fidelity surfaces
 
-- Typography: Segoe UI/PingFang/system fallbacks, restrained weights, large tracked Chinese headline, and readable startup detail match the source hierarchy.
-- Spacing and layout: two-column hero, paired feature cards, product-card proportions, and footer maintain the source rhythm across the desktop window.
-- Colors and tokens: pale blue base, DeepSeek blue accents, white translucent cards, and a deep-blue status panel reproduce the reference balance.
-- Image and asset quality: the packaged DeepSeek application icon is reused for every visible brand mark; no placeholder or code-drawn logo is used.
-- Copy and content: all text identifies DeepSeek Harness, explains local preparation, and states that the main window opens automatically.
+- Typography: the existing Harness and welcome-page system fonts, sizes, weights, and wrapping are unchanged; Windows controls use the native Segoe icon font.
+- Spacing and layout: the obsolete 38-pixel top reservation is removed, the root occupies the full viewport, and controls do not displace sidebar or composer geometry.
+- Colors and tokens: existing Codex-inspired light tokens remain unchanged; window controls are transparent until hover, so no replacement title-bar band is introduced.
+- Image and asset quality: the real packaged DeepSeek mark remains intact; no image asset was replaced or approximated.
+- Copy and content: product copy is unchanged. Accessible Chinese labels identify minimize, maximize/restore, and close actions.
 
 ## Comparison history
 
-1. P1: the prior startup page was a generic centered spinner and did not communicate the DeepSeek product identity. Fixed with the DeepSeek-inspired welcome composition and live startup status panel.
-2. P1: the main application root subtracted the 38-pixel title-bar height after the body had already reserved it, leaving a bottom strip. Fixed by making the root consume the body's full content height.
-3. P1: the first packaged validation omitted `build/icon.png`, causing the welcome screen to fail before rendering. Fixed by including the real icon asset in the Electron package and rebuilding.
+1. P1: the source and v0.1.3 implementation reserved a visible 38-pixel Electron title-bar overlay, contradicting the requested immersive treatment. Fixed by using a Windows frameless `BrowserWindow`, removing body top padding, and making the application root fill the viewport.
+2. P1: removing the native frame would otherwise remove essential window actions. Fixed with app-owned controls, maximize-state synchronization, a transparent drag region, and a sender-validated IPC action whitelist.
+3. Post-fix evidence: the packaged v0.1.4 welcome and main-window captures show no title-bar row; maximize/restore and drag-region interactions passed.
 
-No actionable P0, P1, or P2 differences remain. The implementation intentionally substitutes desktop startup content for the website's recruitment imagery and links.
+No actionable P0, P1, or P2 findings remain.
 
 final result: passed

@@ -12,13 +12,13 @@ The build is not code-signed. Verify the release SHA-256 before accepting an unk
 
 ## Updates
 
-Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; the title-bar control reports progress and changes to a restart action when the verified installer is ready. The same control starts a manual check at any time. Choosing restart stops the bundled backend before Electron installs the update and relaunches the application; choosing later leaves the downloaded update ready for the next application exit. Development and unpacked builds do not contact the release feed.
+Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; the floating update control reports progress and changes to a restart action when the verified installer is ready. The same control starts a manual check at any time. Choosing restart stops the bundled backend before Electron installs the update and relaunches the application; choosing later leaves the downloaded update ready for the next application exit. Development and unpacked builds do not contact the release feed.
 
 ## Configure models and workspaces
 
 The first-run page identifies DSH as DeepSeek Harness and identifies DSH Desktop as an unofficial community edition. Continue to **Settings → Models** and save a DeepSeek API key or another supported provider; the DeepSeek editor links directly to the official API-key page. Add or select a workspace from the sidebar before starting a session. New workspace selection uses Electron's Windows folder dialog and starts in the user's Documents directory.
 
-The renderer is the upstream Harness UI, so its model settings, permission presets, tools, sessions, attachments, plugins, and provider behavior are unchanged. The Codex-inspired desktop stylesheet changes presentation only, while Electron supplies the immersive Windows title-bar overlay and desktop folder-picker bridge.
+The renderer is the upstream Harness UI, so its model settings, permission presets, tools, sessions, attachments, plugins, and provider behavior are unchanged. The Codex-inspired desktop stylesheet changes presentation only, while Electron supplies a frameless immersive Windows window, in-app window controls, and the desktop folder-picker bridge.
 
 ## Storage and network behavior
 
@@ -56,7 +56,7 @@ The generated deployment directory, archive, unpacked application, installer, up
 
 **A pinned taskbar shortcut shows an old icon.** Unpin it and pin the installed application again; Windows can retain shortcut icon caches across upgrades.
 
-**Update checking fails.** Confirm that GitHub Releases is reachable and retry from the title bar. Background network failures do not interrupt Harness work. Automatic updating starts with version 0.1.2; older installations require one final manual installer download.
+**Update checking fails.** Confirm that GitHub Releases is reachable and retry from the floating update control. Background network failures do not interrupt Harness work. Automatic updating starts with version 0.1.2; older installations require one final manual installer download.
 
 ## Limitations
 

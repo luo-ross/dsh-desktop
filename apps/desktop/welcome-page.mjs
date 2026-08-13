@@ -1,4 +1,6 @@
-export function createWelcomePage({ iconDataUrl, version }) {
+import { createWindowControlsMarkup, WINDOW_CONTROLS_CSS } from './window-controls.mjs'
+
+export function createWelcomePage({ frameless, iconDataUrl, version }) {
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -17,18 +19,17 @@ export function createWelcomePage({ iconDataUrl, version }) {
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
     body {
       position: relative;
-      padding-top: 38px;
       background: #f4f8ff;
     }
-    body::before {
+    ${frameless ? `body::before {
       content: '';
       position: fixed;
       z-index: 10;
-      inset: 0 138px auto 0;
-      height: 38px;
-      background: #f4f8ff;
+      inset: 0 300px auto 0;
+      height: 32px;
       -webkit-app-region: drag;
     }
+    ${WINDOW_CONTROLS_CSS}` : ''}
     .shell {
       display: grid;
       grid-template-rows: auto 1fr auto;
@@ -139,6 +140,7 @@ export function createWelcomePage({ iconDataUrl, version }) {
   </style>
 </head>
 <body>
+  ${frameless ? createWindowControlsMarkup() : ''}
   <div class="shell">
     <header class="brand"><img src="${iconDataUrl}" alt=""><span>deepseek</span></header>
     <main class="hero">

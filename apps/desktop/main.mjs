@@ -7,6 +7,11 @@ import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
 import { createUpdaterController } from './updater.mjs'
 import { createWelcomePage } from './welcome-page.mjs'
+import {
+  applyWindowControl,
+  createWindowControlsMarkup,
+  WINDOW_CONTROLS_CSS,
+} from './window-controls.mjs'
 
 const { autoUpdater } = electronUpdater
 
@@ -266,16 +271,7 @@ async function createWindow() {
     backgroundColor: '#ffffff',
     title: 'DSH Desktop · DeepSeek Harness 桌面版',
     icon: join(app.getAppPath(), 'build', 'icon.ico'),
-    ...(process.platform === 'win32'
-      ? {
-          titleBarStyle: 'hidden',
-          titleBarOverlay: {
-            color: '#f7f9fb',
-            symbolColor: '#34383d',
-            height: 38,
-          },
-        }
-      : {}),
+    frame: process.platform !== 'win32',
     webPreferences: {
       preload: join(app.getAppPath(), 'preload.cjs'),
       contextIsolation: true,
@@ -297,11 +293,20 @@ async function createWindow() {
     event.preventDefault()
     window.setTitle('DSH Desktop · DeepSeek Harness 桌面版')
   })
+  const publishWindowState = () => {
+    if (!window.isDestroyed()) {
+      window.webContents.send('dsh-desktop:window-state', { maximized: window.isMaximized() })
+    }
+  }
+  window.on('maximize', publishWindowState)
+  window.on('unmaximize', publishWindowState)
   const loadingPage = createWelcomePage({
+    frameless: process.platform === 'win32',
     iconDataUrl: DESKTOP_ICON_DATA_URL,
     version: app.getVersion(),
   })
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
+  await installWindowControls(window)
   return window
 }
 
@@ -341,6 +346,41 @@ ipcMain.handle('dsh-desktop:install-update', async (event) => {
   assertMainWindowSender(event)
   await updaterController?.install()
 })
+
+ipcMain.handle('dsh-desktop:window-control', (event, action) => {
+  assertMainWindowSender(event)
+  return applyWindowControl(mainWindow, action)
+})
+
+async function installWindowControls(window) {
+  if (process.platform !== 'win32') return
+  await window.webContents.executeJavaScript(`{
+    const bridge = globalThis.dshDesktop;
+    if (bridge?.windowControl) {
+      if (!document.getElementById('dsh-window-controls')) {
+        document.body.insertAdjacentHTML('beforeend', ${JSON.stringify(createWindowControlsMarkup())});
+      }
+      const controls = document.getElementById('dsh-window-controls');
+      const maximizeButton = controls.querySelector('[data-window-action="toggle-maximize"]');
+      const renderWindowState = (state) => {
+        const maximized = Boolean(state?.maximized);
+        maximizeButton.setAttribute('aria-label', maximized ? '还原' : '最大化');
+        maximizeButton.querySelector('span').textContent = maximized ? '\\uE923' : '\\uE922';
+      };
+      for (const button of controls.querySelectorAll('button[data-window-action]')) {
+        button.addEventListener('click', () => {
+          const action = button.dataset.windowAction;
+          const request = bridge.windowControl(action);
+          if (action === 'close') void request.catch(() => {});
+          else void request.then(renderWindowState);
+        });
+      }
+      void bridge.windowControl('get-state').then(renderWindowState);
+      const unsubscribe = bridge.onWindowState?.(renderWindowState);
+      if (unsubscribe) window.addEventListener('beforeunload', unsubscribe, { once: true });
+    }
+  }`)
+}
 
 async function installUpdateControl(window) {
   await window.webContents.executeJavaScript(`{
@@ -384,6 +424,8 @@ async function applyDesktopTheme(window) {
     "document.body.setAttribute('data-dsh-desktop-codex-theme', '')",
   )
   await window.webContents.insertCSS(DESKTOP_THEME_CSS)
+  await window.webContents.insertCSS(WINDOW_CONTROLS_CSS)
+  await installWindowControls(window)
   await installUpdateControl(window)
 }
 

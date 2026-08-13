@@ -18,7 +18,7 @@ DSH Desktop 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek
 - 单实例 Electron 窗口，后端仅在操作系统分配的 `127.0.0.1` 端口上运行。
 - 采用 DeepSeek 官网视觉语言的启动欢迎页，在本地 Harness 后端准备期间保持响应，完成后自动进入主窗口。
 - 受 Codex 启发的浅色桌面皮肤，同时保留上游工作区、会话、模型、设置、工具和权限行为。
-- 沉浸式 Windows 标题栏，以及由 Electron 直接提供的可靠工作目录选择器。
+- 无原生标题栏的沉浸式 Windows 窗口和应用内窗口控件，以及由 Electron 直接提供的可靠工作目录选择器。
 - 应用、安装程序、任务栏和快捷方式统一使用 DeepSeek 鲸鱼图标。
 - 通过 GitHub Releases 自动检查稳定版、后台下载，并在重启后安装更新。
 

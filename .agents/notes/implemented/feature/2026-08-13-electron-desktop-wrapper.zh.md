@@ -16,13 +16,13 @@ Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖
 
 此决定部分取代[GUI 分层与 RPC 协议](../architecture/2026-07-19-gui-layering-and-rpc-protocol.md)中针对 Electron 的 IPC 预留。本机回环载体是已交付的桌面传输方式；IPC 仍可作为后续优化，但不再是交付桌面产品的前置条件。
 
-桌面渲染器会在后端页面加载完成后应用仅限 Electron 的 Codex 风格浅色皮肤。该皮肤覆盖设计令牌和面板几何，不替换 Web 组件，因此工作区、会话、模型、设置、输入框和详情功能仍由现有 Harness UI 提供。浏览器中运行的产品保留原有主题行为。Electron 隐藏原生应用菜单以保持桌面界面简洁；标准文本编辑快捷键仍由渲染器处理。渲染器 body 只预留一次覆盖标题栏的高度，并让根节点填满剩余内容盒，避免再次扣除标题栏高度而在主窗口底部留下空白条。社区发行版命名为 DSH Desktop，使用 `@luo-ross/dsh-desktop` 软件包和 `io.github.luoross.dshdesktop` Windows 应用标识，并明确说明它不是 DeepSeek AI 官方产品。桌面工作区清单把源码元数据指向社区仓库，其他上游发行成员仍保留官方仓库 URL。上游页面加载后，DSH Desktop 窗口继续保持产品标题。桌面窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO，不再显示 Electron 默认标志。
+桌面渲染器会在后端页面加载完成后应用仅限 Electron 的 Codex 风格浅色皮肤。该皮肤覆盖设计令牌和面板几何，不替换 Web 组件，因此工作区、会话、模型、设置、输入框和详情功能仍由现有 Harness UI 提供。浏览器中运行的产品保留原有主题行为。Windows 版 Electron 关闭原生边框和应用菜单，通过透明拖动区域及应用自有的最小化、最大化、还原和关闭控件提供窗口操作，不再预留可见的标题栏行；标准文本编辑快捷键仍由渲染器处理。渲染器根节点填满整个客户区，因此侧栏和主界面都直达窗口上下边缘。隔离的 preload 桥接只向渲染器暴露单目录选择和固定的窗口控制操作集合；主进程只接受自有窗口的请求，再打开 Electron 原生文件夹对话框或改变窗口状态。社区发行版命名为 DSH Desktop，使用 `@luo-ross/dsh-desktop` 软件包和 `io.github.luoross.dshdesktop` Windows 应用标识，并明确说明它不是 DeepSeek AI 官方产品。桌面工作区清单把源码元数据指向社区仓库，其他上游发行成员仍保留官方仓库 URL。上游页面加载后，DSH Desktop 窗口继续保持产品标题。桌面窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO，不再显示 Electron 默认标志。
 
 部署完成后，暂存脚本用当前检出中刚构建的产物替换部署后的 `@deepseek-ai/dsh-web-frontend` 和两个桌面版修改过的客户端插件 bundle，并把欢迎页图像复制进前端资源目录。这样既保留已发布的运行时依赖闭包，也能把桌面渲染器改动交付进同一个安装包。首次启动的归档解压在独立的 Electron Node 模式子进程中执行，不阻塞浏览器窗口事件循环；准备页分别显示解压、后端启动和连接阶段。首次运行界面采用 DeepSeek 的浅蓝色视觉语言，说明 DSH 是 DeepSeek Harness 的简称，并在模型配置前标明这是非官方社区桌面版。
 
-Electron 隐藏原生应用菜单，并用可拖动的覆盖层替代 Windows 标题栏，同时保留原生窗口按钮。隔离的 preload 桥接只向渲染器暴露单目录选择；主进程只接受自有窗口的请求，再打开 Electron 原生文件夹对话框。浏览器客户端继续使用现有 Host 目录选择器。
+Electron 使用无边框窗口、透明拖动区和应用内窗口按钮替代 Windows 原生标题栏。隔离的 preload 桥接仅提供白名单窗口操作和单目录选择；主进程只接受自有窗口的请求。浏览器客户端继续使用现有 Host 目录选择器。
 
-正式安装的 Windows 版本通过 `electron-updater` 使用社区仓库的公开 GitHub Releases。主进程在启动后不久及每六小时检查一次，在后台下载稳定版更新，通过受限 preload 桥接发布进度，并在标题栏提供手动检查和重启安装控件。安装更新前会先终止应用拥有的 Harness 后端，再允许 Electron 的 NSIS 更新器退出并重新启动应用。开发版和免安装构建不会检查发行源。只有安装程序、`latest.yml` 和匹配的 blockmap 一同发布时，该发行版才具备完整更新能力。
+正式安装的 Windows 版本通过 `electron-updater` 使用社区仓库的公开 GitHub Releases。主进程在启动后不久及每六小时检查一次，在后台下载稳定版更新，通过受限 preload 桥接发布进度，并提供悬浮的手动检查和重启安装控件。安装更新前会先终止应用拥有的 Harness 后端，再允许 Electron 的 NSIS 更新器退出并重新启动应用。开发版和免安装构建不会检查发行源。只有安装程序、`latest.yml` 和匹配的 blockmap 一同发布时，该发行版才具备完整更新能力。
 
 ## Alternatives considered
 
