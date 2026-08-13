@@ -10,6 +10,10 @@ Download `DSH-Desktop-Setup-<version>.exe` from the repository's [Releases page]
 
 The build is not code-signed. Verify the release SHA-256 before accepting an unknown-publisher warning from Windows SmartScreen. The first launch can take about one minute because the packaged backend must be expanded. Extraction runs in a child process, and the responsive preparation page reports extraction, backend startup, and connection phases until the backend accepts HTTP requests.
 
+## Updates
+
+Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; the title-bar control reports progress and changes to a restart action when the verified installer is ready. The same control starts a manual check at any time. Choosing restart stops the bundled backend before Electron installs the update and relaunches the application; choosing later leaves the downloaded update ready for the next application exit. Development and unpacked builds do not contact the release feed.
+
 ## Configure models and workspaces
 
 The first-run page identifies DSH as DeepSeek Harness and identifies DSH Desktop as an unofficial community edition. Continue to **Settings → Models** and save a DeepSeek API key or another supported provider; the DeepSeek editor links directly to the official API-key page. Add or select a workspace from the sidebar before starting a session. New workspace selection uses Electron's Windows folder dialog and starts in the user's Documents directory.
@@ -36,9 +40,9 @@ Run `pnpm run desktop:pack` from the repository root. The build performs these o
 2. Deploy the production `@deepseek-ai/dsh` dependency closure with a hoisted node linker.
 3. Overlay the just-built Web frontend and desktop-modified client plugin bundles into the deployed backend so renderer changes ship with the pinned runtime dependency closure.
 4. Create `desktop-backend.tar.gz` so nested dependencies and native files survive Electron Builder packaging.
-5. Build the x64 unpacked application and NSIS installer in `dist-desktop/`.
+5. Build the x64 unpacked application, NSIS installer, `latest.yml`, and differential-download blockmap in `dist-desktop/`.
 
-The generated deployment directory, archive, unpacked application, and installer are ignored by Git. Release binaries are distributed through GitHub Releases rather than committed to the source tree.
+The generated deployment directory, archive, unpacked application, installer, update metadata, and blockmap are ignored by Git. Every GitHub release must publish the installer, `latest.yml`, and matching blockmap together; clients verify the metadata checksum before installing. Release binaries are not committed to the source tree.
 
 ## Troubleshooting
 
@@ -52,10 +56,12 @@ The generated deployment directory, archive, unpacked application, and installer
 
 **A pinned taskbar shortcut shows an old icon.** Unpin it and pin the installed application again; Windows can retain shortcut icon caches across upgrades.
 
+**Update checking fails.** Confirm that GitHub Releases is reachable and retry from the title bar. Background network failures do not interrupt Harness work. Automatic updating starts with version 0.1.2; older installations require one final manual installer download.
+
 ## Limitations
 
 - The published installer currently targets Windows x64 only.
-- The installer is unsigned and has no automatic updater.
+- The installer and downloaded updates are unsigned, so Windows may continue to identify DSH Desktop as an unknown publisher until release signing is configured.
 - First launch requires local disk space and time to extract the packaged backend.
 - The wrapper tracks a rapidly changing developer-preview upstream and may require a new desktop release after incompatible upstream changes.
 - Uninstalling the application does not remove Harness state under `DSH_HOME` or `~/.dsh`, and old versioned backend extractions are not automatically pruned.

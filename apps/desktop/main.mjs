@@ -4,6 +4,10 @@ import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { get } from 'node:http'
 import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
+import electronUpdater from 'electron-updater'
+import { createUpdaterController } from './updater.mjs'
+
+const { autoUpdater } = electronUpdater
 
 const STARTUP_TIMEOUT_MS = 60_000
 const HTTP_READY_TIMEOUT_MS = 30_000
@@ -19,6 +23,7 @@ let allowQuit = false
 let mainWindow
 let shutdownPromise
 let packagedBackendRoot
+let updaterController
 
 function backendRequiredPaths(root) {
   return [
@@ -333,11 +338,72 @@ ipcMain.handle('dsh-desktop:pick-directory', async (event) => {
   return result.canceled ? null : result.filePaths[0] ?? null
 })
 
+function assertMainWindowSender(event) {
+  if (
+    mainWindow === undefined
+    || mainWindow.isDestroyed()
+    || event.sender.id !== mainWindow.webContents.id
+  ) throw new Error('desktop request came from an unknown window')
+}
+
+ipcMain.handle('dsh-desktop:get-update-state', (event) => {
+  assertMainWindowSender(event)
+  return updaterController?.getState() ?? { status: 'idle', currentVersion: app.getVersion() }
+})
+
+ipcMain.handle('dsh-desktop:check-for-updates', async (event) => {
+  assertMainWindowSender(event)
+  return await updaterController?.check({ manual: true })
+})
+
+ipcMain.handle('dsh-desktop:install-update', async (event) => {
+  assertMainWindowSender(event)
+  await updaterController?.install()
+})
+
+async function installUpdateControl(window) {
+  await window.webContents.executeJavaScript(`{
+    const bridge = globalThis.dshDesktop;
+    if (bridge?.checkForUpdates && !document.getElementById('dsh-desktop-update')) {
+      const button = document.createElement('button');
+      button.id = 'dsh-desktop-update';
+      button.type = 'button';
+      button.setAttribute('aria-label', '检查 DSH Desktop 更新');
+      let status = 'idle';
+      const render = (state) => {
+        status = state.status;
+        const labels = {
+          idle: '检查更新',
+          checking: '正在检查…',
+          'up-to-date': '已是最新版',
+          downloading: state.percent > 0 ? '下载更新 ' + state.percent + '%' : '发现 v' + (state.version ?? ''),
+          downloaded: '重启更新 v' + (state.version ?? ''),
+          installing: '正在安装…',
+          error: '更新检查失败',
+        };
+        button.textContent = labels[state.status] ?? '检查更新';
+        button.dataset.status = state.status;
+        button.disabled = state.status === 'checking' || state.status === 'installing';
+        button.title = state.message ?? ('DSH Desktop ' + state.currentVersion);
+      };
+      button.addEventListener('click', () => {
+        if (status === 'downloaded') void bridge.installUpdate();
+        else void bridge.checkForUpdates();
+      });
+      document.body.append(button);
+      void bridge.getUpdateState().then(render);
+      const unsubscribe = bridge.onUpdateState(render);
+      window.addEventListener('beforeunload', unsubscribe, { once: true });
+    }
+  }`)
+}
+
 async function applyDesktopTheme(window) {
   await window.webContents.executeJavaScript(
     "document.body.setAttribute('data-dsh-desktop-codex-theme', '')",
   )
   await window.webContents.insertCSS(DESKTOP_THEME_CSS)
+  await installUpdateControl(window)
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
@@ -366,6 +432,14 @@ if (!hasSingleInstanceLock) {
     if (process.platform === 'win32') app.setAppUserModelId('io.github.luoross.dshdesktop')
     Menu.setApplicationMenu(null)
     mainWindow = await createWindow()
+    updaterController = createUpdaterController({
+      updater: autoUpdater,
+      app,
+      getWindow: () => mainWindow,
+      showMessageBox: (window, options) => dialog.showMessageBox(window, options),
+      stopBackend,
+      permitQuit: () => { allowQuit = true },
+    })
     try {
       await preparePackagedBackend()
       updateStartupStatus('正在启动 DeepSeek Harness 本地服务…')
@@ -375,6 +449,7 @@ if (!hasSingleInstanceLock) {
       if (!mainWindow.isDestroyed()) {
         await mainWindow.loadURL(backendUrl)
         await applyDesktopTheme(mainWindow)
+        updaterController.start()
       }
     } catch (error) {
       dialog.showErrorBox(

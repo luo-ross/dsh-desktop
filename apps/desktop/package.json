@@ -1,7 +1,7 @@
 {
   "name": "@luo-ross/dsh-desktop",
   "productName": "DSH Desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Unofficial community desktop edition of DeepSeek Harness",
   "author": {
     "name": "luo-ross",
@@ -23,6 +23,7 @@
     "access": "public"
   },
   "dependencies": {
+    "electron-updater": "6.8.9",
     "tar": "7.4.3"
   },
   "scripts": {
@@ -44,6 +45,7 @@
     },
     "files": [
       "main.mjs",
+      "updater.mjs",
       "preload.cjs",
       "codex-theme.css",
       "scripts/extract-backend.mjs",
@@ -58,6 +60,7 @@
     ],
     "win": {
       "icon": "build/icon.ico",
+      "electronUpdaterCompatibility": ">= 2.16",
       "target": [
         {
           "target": "nsis",
@@ -67,6 +70,11 @@
         }
       ],
       "artifactName": "DSH-Desktop-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "luo-ross",
+      "repo": "dsh-desktop"
     },
     "nsis": {
       "installerIcon": "build/icon.ico",
