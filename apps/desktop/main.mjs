@@ -59,6 +59,10 @@ function isPackagedBackendReady(root) {
   return backendRequiredPaths(root).every(path => existsSync(path))
 }
 
+function packagedBackendDestination() {
+  return join(app.getPath('userData'), `backend-${app.getVersion()}`)
+}
+
 function updateStartupStatus(status, detail = '') {
   if (mainWindow === undefined || mainWindow.isDestroyed()) return
   const script = `{
@@ -98,9 +102,13 @@ function extractBackendArchive(archive, destination) {
 
 async function preparePackagedBackend() {
   if (!app.isPackaged) return
-  const destination = join(app.getPath('userData'), `backend-${app.getVersion()}`)
+  const destination = packagedBackendDestination()
   if (isPackagedBackendReady(destination)) {
     packagedBackendRoot = destination
+    updateStartupStatus(
+      '正在快速启动 DeepSeek Harness…',
+      '已复用本机运行环境，无需重复初始化。',
+    )
     return
   }
 
@@ -276,7 +284,7 @@ function stopBackend() {
   return shutdownPromise
 }
 
-async function createWindow() {
+async function createWindow({ cachedBackend = false } = {}) {
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -316,6 +324,7 @@ async function createWindow() {
   window.on('maximize', publishWindowState)
   window.on('unmaximize', publishWindowState)
   const loadingPage = createWelcomePage({
+    cachedBackend,
     frameless: process.platform === 'win32',
     iconDataUrl: DESKTOP_ICON_DATA_URL,
     version: app.getVersion(),
@@ -469,7 +478,9 @@ if (!hasSingleInstanceLock) {
   app.whenReady().then(async () => {
     if (process.platform === 'win32') app.setAppUserModelId('io.github.luoross.dshdesktop')
     Menu.setApplicationMenu(null)
-    mainWindow = await createWindow()
+    const cachedBackend = app.isPackaged
+      && isPackagedBackendReady(packagedBackendDestination())
+    mainWindow = await createWindow({ cachedBackend })
     updaterController = createUpdaterController({
       updater: autoUpdater,
       app,

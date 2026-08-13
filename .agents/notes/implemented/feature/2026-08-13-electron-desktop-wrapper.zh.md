@@ -12,7 +12,7 @@ DeepSeek Harness 通过 `dsh web` 提供图形界面，用户需要在终端中�
 
 `apps/desktop` 是复用现有本机回环 Web 载体的 Electron 外壳。主进程持有 Electron 单实例锁，立即显示启用沙箱和上下文隔离的准备窗口，并通过 Electron Node 模式及 HMR 服务要求的 `--expose-internals` 参数启动安装包内的 `dsh web` 后端。后端绑定操作系统分配的回环端口。准备页面采用 DeepSeek 的轻盈浅蓝视觉语言，说明 DSH Desktop 是 DeepSeek Harness 的社区桌面版，在解压和连接过程中保持响应并显示实时进度，后端就绪后直接进入 Harness 主窗口。只有后端输出 URL 且 HTTP 请求实际成功后，应用才会替换准备页面，因此 Loader 在输出 URL 后失败时不会跳转到已损坏的服务。再次启动时会聚焦现有窗口，不会重复解压或启动后端。应用退出时会等待后端停止；只有正常关闭未达到静止状态时，才会强制终止该应用拥有的进程树。
 
-Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖闭包。部署根清单固定使用已发布的 `@deepseek-ai/dsh` 版本，不注入工作区成员，因为 pnpm 部署工作区闭包时会遗漏运行期加载的插件软件包。工作区约束只对该部署依赖及其精确版本放行。首次启动会把归档原子解压到 Electron 用户数据目录下的版本化目录。采用归档是因为 Electron Builder 会从普通附加资源中排除嵌套的 `node_modules`，而 Windows 普通用户也无法安全地重新创建 pnpm 符号链接。暂存部署使用 pnpm 的 hoisted node linker，使归档包含真实目录和原生插件文件。只有完成标记、CLI 入口和 YAML 入口文件都存在时，应用才会复用解压目录；后端启动前会替换中断或不完整的解压结果。
+Windows 安装包以 gzip tar 归档携带官方 `@deepseek-ai/dsh` 生产依赖闭包。部署根清单固定使用已发布的 `@deepseek-ai/dsh` 版本，不注入工作区成员，因为 pnpm 部署工作区闭包时会遗漏运行期加载的插件软件包。工作区约束只对该部署依赖及其精确版本放行。首次启动会把归档原子解压到 Electron 用户数据目录下的版本化目录。采用归档是因为 Electron Builder 会从普通附加资源中排除嵌套的 `node_modules`，而 Windows 普通用户也无法安全地重新创建 pnpm 符号链接。暂存部署使用 pnpm 的 hoisted node linker，使归档包含真实目录和原生插件文件。只有完成标记、CLI 入口和 YAML 入口文件都存在时，应用才会复用解压目录；后端启动前会替换中断或不完整的解压结果。检测到完整缓存时，启动页会明确显示正在快速启动并复用本机运行环境，不再重复展示首次初始化提示。
 
 此决定部分取代[GUI 分层与 RPC 协议](../architecture/2026-07-19-gui-layering-and-rpc-protocol.md)中针对 Electron 的 IPC 预留。本机回环载体是已交付的桌面传输方式；IPC 仍可作为后续优化，但不再是交付桌面产品的前置条件。
 

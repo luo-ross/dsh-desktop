@@ -1,6 +1,11 @@
 import { createWindowControlsMarkup, WINDOW_CONTROLS_CSS } from './window-controls.mjs'
 
-export function createWelcomePage({ frameless, iconDataUrl, version }) {
+export function createWelcomePage({ cachedBackend = false, frameless, iconDataUrl, version }) {
+  const startupStatus = cachedBackend ? '正在快速启动 DeepSeek Harness…' : '正在准备桌面环境…'
+  const startupDetail = cachedBackend
+    ? '已复用本机运行环境，无需重复初始化。'
+    : '首次启动可能需要约一分钟。'
+
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -158,8 +163,8 @@ export function createWelcomePage({ frameless, iconDataUrl, version }) {
         <h2>DSH Desktop</h2>
         <p class="edition">共赴智能新境</p>
         <div class="status-panel">
-          <p id="startup-status">正在准备桌面环境…</p>
-          <p id="startup-detail">首次启动可能需要约一分钟。</p>
+          <p id="startup-status">${startupStatus}</p>
+          <p id="startup-detail">${startupDetail}</p>
           <div class="progress" aria-hidden="true"></div>
         </div>
       </section>
