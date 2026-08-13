@@ -1,7 +1,7 @@
 {
   "name": "@luo-ross/dsh-desktop",
-  "productName": "DSH Desktop",
-  "version": "0.1.2",
+  "productName": "DSH",
+  "version": "0.1.9",
   "description": "Unofficial community desktop edition of DeepSeek Harness",
   "author": {
     "name": "luo-ross",
@@ -37,7 +37,7 @@
   },
   "build": {
     "appId": "io.github.luoross.dshdesktop",
-    "productName": "DSH Desktop",
+    "productName": "DSH",
     "asar": true,
     "npmRebuild": false,
     "directories": {
@@ -46,10 +46,13 @@
     "files": [
       "main.mjs",
       "updater.mjs",
+      "welcome-page.mjs",
+      "window-controls.mjs",
       "preload.cjs",
       "codex-theme.css",
       "scripts/extract-backend.mjs",
       "build/icon.ico",
+      "build/icon.png",
       "package.json"
     ],
     "extraResources": [
@@ -69,7 +72,7 @@
           ]
         }
       ],
-      "artifactName": "DSH-Desktop-Setup-${version}.${ext}"
+      "artifactName": "DSH-Windows-x64-Setup-${version}.${ext}"
     },
     "publish": {
       "provider": "github",
@@ -83,7 +86,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "DSH Desktop"
+      "shortcutName": "DSH"
     }
   }
 }

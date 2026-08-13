@@ -70,6 +70,8 @@ describe('CI workflow', () => {
     expect(windowsNative['runs-on']).toContain('self-hosted')
     expect(windowsNative['runs-on']).toContain('dsh-win-ci')
     expect(windowsNative['runs-on']).toContain('dsh-windows-2025-16core')
+    expect(windowsNative['runs-on']).toContain('windows-2025')
+    expect(windowsNative['runs-on']).toContain("github.repository == 'deepseek-ai/deepseek-harness'")
     expect(windowsNative.name).toBe('windows node 24 / native complete')
     expect(windowsNative.if).toBe("github.event_name == 'pull_request'")
     const nativeCommandSteps = (windowsNative.steps as unknown[]).filter((step): step is Record<string, unknown> & { run: string } => (
@@ -82,7 +84,7 @@ describe('CI workflow', () => {
     expect(wineAptCache['runs-on']).toBe('ubuntu-latest')
 
     // serial-windows: master-only standby, self-hosted, non-blocking.
-    expect(serialWindows.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/master'")
+    expect(serialWindows.if).toContain("github.repository == 'deepseek-ai/deepseek-harness'")
     expect(serialWindows['runs-on']).toEqual(['self-hosted', 'dsh-win-ci', 'windows'])
     expect(serialWindows.name).toBe('serial / windows (self-hosted standby)')
 
@@ -99,6 +101,8 @@ describe('CI workflow', () => {
       expect(job['runs-on'], `${jobName} runs-on must use the Linux failover switch`).toContain('DSH_CI_FAILOVER_LINUX')
       expect(job['runs-on'], `${jobName} runs-on must not use the Windows failover switch`).not.toContain('DSH_CI_FAILOVER_WINDOWS')
       expect(job['runs-on']).toContain('vm-backup')
+      expect(job['runs-on']).toContain('ubuntu-24.04')
+      expect(job['runs-on']).toContain("github.repository == 'deepseek-ai/deepseek-harness'")
     }
     expect(aggregate['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
     expect(aggregate['runs-on']).not.toContain('DSH_CI_FAILOVER_WINDOWS')
@@ -129,7 +133,8 @@ describe('CI workflow', () => {
       if (!isRecord(job)) throw new TypeError(`${name} must be defined`)
       expect(job.concurrency).toBeUndefined()
       // Both stay master-push-only; that is what makes the push carve-out safe.
-      expect(job.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/master'")
+      expect(job.if).toContain("github.repository == 'deepseek-ai/deepseek-harness'")
+      expect(job.if).toContain("github.event_name == 'push' && github.ref == 'refs/heads/master'")
     }
 
     // What bounds the cost of exempting push: a master push may only carry the
@@ -232,6 +237,35 @@ describe('E2B e2e workflow', () => {
       },
     })
     expect(e2b?.run).toContain('packages/e2b/e2b/tests/composition.e2e.ts')
+  })
+})
+
+describe('DeepSeek real-API e2e workflow', () => {
+  it('skips every setup and test step when the optional repository key is absent', () => {
+    const workflow = loadWorkflow('.github/workflows/e2e.yml')
+    const job = workflowJob(workflow, 'e2e')
+    if (!Array.isArray(job.steps)) throw new TypeError('DeepSeek e2e workflow must define steps')
+
+    const steps = job.steps.filter(isRecord)
+    const presence = steps.find(step => step.id === 'api-key')
+    expect(presence).toMatchObject({
+      env: { DEEPSEEK_API_KEY: '${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}' },
+    })
+    expect(presence?.run).toContain('available=false')
+    expect(presence?.run).toContain('::notice::')
+    expect(presence?.run).not.toContain('exit 1')
+
+    const gatedSteps = steps.filter(step => step !== presence)
+    expect(gatedSteps.length).toBeGreaterThan(0)
+    for (const step of gatedSteps) {
+      expect(step.if).toBe("steps.api-key.outputs.available == 'true'")
+    }
+
+    const secretBearingSteps = steps.filter(step => isRecord(step.env) && 'DEEPSEEK_API_KEY' in step.env)
+    expect(secretBearingSteps.map(step => step.name)).toEqual([
+      'Check for optional DEEPSEEK_API_KEY',
+      'E2E tests (real DeepSeek API)',
+    ])
   })
 })
 
@@ -384,8 +418,9 @@ describe('Issue lifecycle workflow', () => {
     expect(lifecyclePullRequest.types).toContain('review_requested')
     expect(lifecycleReview.types).toEqual(['submitted'])
     expect(lifecycleJob.if).toBe(
-      "${{ github.event_name != 'pull_request_review' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested') }}",
+      "${{ github.repository == 'deepseek-ai/deepseek-harness' && (github.event_name != 'pull_request_review' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested')) }}",
     )
+    expect(workflowJob(policy, 'policy').if).toBe("${{ github.repository == 'deepseek-ai/deepseek-harness' }}")
     expect(policyPullRequest.types).toContain('ready_for_review')
   })
 })
