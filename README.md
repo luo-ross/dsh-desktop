@@ -20,6 +20,7 @@ The initial release is not code-signed. Windows SmartScreen may display an unkno
 - A light, Codex-inspired desktop skin that keeps the upstream workspace, session, model, settings, tools, and permission behavior intact.
 - An immersive Windows title bar and an Electron-owned folder picker for reliable workspace selection.
 - The DeepSeek whale icon for the application, installer, taskbar, and shortcuts.
+- Automatic stable-release checks, background downloads, and restart-to-install updates through GitHub Releases.
 
 ## First run and configuration
 
