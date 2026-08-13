@@ -1,0 +1,17 @@
+{
+  "name": "@luo-ross/dsh-desktop-backend",
+  "version": "0.1.0-rc.6",
+  "type": "module",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luo-ross/dsh-desktop.git",
+    "directory": "apps/desktop-backend"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.0-rc.6"
+  }
+}

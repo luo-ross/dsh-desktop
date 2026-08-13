@@ -1,0 +1,62 @@
+# DSH Desktop
+
+[English](README.md) | 中文
+
+`@luo-ross/dsh-desktop` 将 DeepSeek Harness Web Host 打包为非官方 Windows Electron 应用。它会在操作系统分配的本机回环端口上启动随安装包分发的后端，等待 HTTP 请求成功，然后在启用沙箱和上下文隔离的窗口中打开真实 Harness UI。
+
+## 安装与启动
+
+从本仓库的 [Releases 页面](https://github.com/luo-ross/dsh-desktop/releases)下载 `DSH-Desktop-Setup-<version>.exe`。NSIS 安装程序支持自定义安装目录，并创建名为 **DSH Desktop** 的桌面与开始菜单快捷方式。
+
+当前构建尚未进行代码签名。接受 Windows SmartScreen 的未知发布者提示前，请核对发行页面公布的 SHA-256。首次启动可能需要约一分钟，因为应用必须先展开随安装包分发的后端；在后端能够接受 HTTP 请求前，窗口会一直显示准备页面。
+
+## 配置模型与工作区
+
+打开**设置 → 模型**，保存 DeepSeek API Key 或其他受支持的模型提供方。开始会话前，请从侧边栏添加或选择工作区。新增工作区时默认从用户的“文档”目录开始选择。
+
+渲染器就是上游 Harness UI，因此模型设置、权限预设、工具、会话、附件、插件和模型提供方行为保持不变。受 Codex 启发的桌面样式表只改变界面表现。
+
+## 存储与网络行为
+
+Harness 状态优先使用 `DSH_HOME`，未设置时使用 `~/.dsh`。该目录包含设置、托管凭据、profile、会话数据和附件；重新安装 DSH Desktop 不会删除这些内容。
+
+安装包后端的解压目录与 Harness 状态相互独立。Electron 会把后端存放在当前用户应用数据目录下的 `backend-<version>` 中；只有完成标记和必要运行文件均存在时，后续启动才会复用该目录。
+
+后端只监听 `127.0.0.1` 并自动选择空闲端口。渲染进程关闭 Node.js 集成，启用上下文隔离和沙箱，并把外部 HTTP 链接交给系统浏览器打开。DSH Desktop 本身不增加遥测，但上游 Harness 和用户配置的模型提供方可能按照各自说明发起网络请求。
+
+## 开发运行
+
+安装仓库所需环境并执行 `pnpm install`，然后在仓库根目录运行 `pnpm run desktop:dev`。该命令会先构建 Harness，再启动 Electron。开发模式使用检出目录中已经构建的 CLI，不使用安装包后端归档。
+
+## 构建 Windows 安装程序
+
+在仓库根目录运行 `pnpm run desktop:pack`。构建过程依次执行：
+
+1. 构建 Harness Host 和 Web UI。
+2. 使用 hoisted node linker 部署 `@deepseek-ai/dsh` 的生产依赖闭包。
+3. 创建 `desktop-backend.tar.gz`，确保 Electron Builder 打包后仍保留嵌套依赖和原生文件。
+4. 在 `dist-desktop/` 中生成 x64 免安装目录和 NSIS 安装程序。
+
+生成的部署目录、归档、免安装应用和安装程序均由 Git 忽略。发行版二进制文件通过 GitHub Releases 分发，不提交到源码树。
+
+## 故障排查
+
+**首次启动看起来很慢。** 请等待准备页面结束。杀毒软件扫描和后端解压可能使首次启动明显慢于后续启动。
+
+**启动时提示模块缺失或后端不完整。** 请安装最新发行版。正确打包的版本会携带 `backend.tar.gz`，并自动替换未完整解压的版本目录。
+
+**应用提示 HTTP 超时或连接被重置。** 关闭 DSH Desktop，确认没有旧的 DSH Desktop 进程残留，然后重新启动。提交可复现问题时，请保留完整错误信息。
+
+**固定到任务栏的快捷方式仍显示旧图标。** 取消固定后重新固定已安装应用；Windows 可能在升级后继续使用旧的快捷方式图标缓存。
+
+## 限制
+
+- 当前发布的安装程序仅支持 Windows x64。
+- 安装程序尚未签名，也没有自动更新功能。
+- 首次启动需要本地磁盘空间和时间来解压安装包后端。
+- 桌面外壳跟随快速变化的开发者预览版上游；上游发生不兼容变更后可能需要发布新的桌面版本。
+- 卸载应用不会删除 `DSH_HOME` 或 `~/.dsh` 中的 Harness 状态，也不会自动清理旧版本的后端解压目录。
+
+## 归属说明
+
+窗口、可执行文件、安装程序和 Windows 快捷方式使用由 `apps/web/public/favicon.svg` 中 DeepSeek 官方鲸鱼标志生成的 ICO。DSH Desktop 是非官方社区构建，未获得 DeepSeek AI 背书。源码采用仓库根目录中的 MIT 许可证，并保留根目录的第三方声明。

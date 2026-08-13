@@ -1,0 +1,144 @@
+/* Electron-only visual skin matching the light Codex desktop workspace. */
+body[data-dsh-desktop-codex-theme] {
+  color-scheme: light;
+  --dsw-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --dsw-alias-bg-base: #ffffff;
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #f7f9fb;
+  --dsw-alias-bg-layer-3: #f0f3f6;
+  --dsw-alias-bg-mask-1: rgb(15 23 42 / 18%);
+  --dsw-alias-border-inverted: rgb(15 23 42 / 8%);
+  --dsw-alias-border-inverted2: rgb(15 23 42 / 10%);
+  --dsw-alias-border-l1: rgb(15 23 42 / 6%);
+  --dsw-alias-border-l2-darkmode-thin: rgb(15 23 42 / 10%);
+  --dsw-alias-border-l2: rgb(15 23 42 / 10%);
+  --dsw-alias-border-l3: rgb(15 23 42 / 15%);
+  --dsw-alias-border-l4: rgb(15 23 42 / 20%);
+  --dsw-alias-brand-primary: #202124;
+  --dsw-alias-brand-text: #202124;
+  --dsw-alias-button-contrast-fill: #202124;
+  --dsw-alias-button-elevated-fill: #ffffff;
+  --dsw-alias-button-floating-fill: #ffffff;
+  --dsw-alias-button-floating-hover: #f1f4f7;
+  --dsw-alias-button-ghost-active-border: rgb(15 23 42 / 8%);
+  --dsw-alias-button-ghost-active-fill: #e3eaf0;
+  --dsw-alias-button-ghost-active-hover: #dce5ec;
+  --dsw-alias-button-info-fill: #202124;
+  --dsw-alias-button-info-hover: #0f1115;
+  --dsw-alias-button-primary-fill: #202124;
+  --dsw-alias-button-primary-hover: #0f1115;
+  --dsw-alias-button-primary-dimmed: #aeb4bb;
+  --dsw-alias-button-tool-bar-fill: #eef2f5;
+  --dsw-alias-button-tool-bar-hover: #e3e8ed;
+  --dsw-alias-interactive-bg-active: rgb(15 23 42 / 10%);
+  --dsw-alias-interactive-bg-hover-accent: rgb(15 23 42 / 10%);
+  --dsw-alias-interactive-bg-hover-danger: rgb(220 38 38 / 8%);
+  --dsw-alias-interactive-bg-hover-solid: #e4eaf0;
+  --dsw-alias-interactive-bg-hover: rgb(15 23 42 / 6%);
+  --dsw-alias-label-caption: #8a9199;
+  --dsw-alias-label-dimmed: #a7adb4;
+  --dsw-alias-label-primary: #202124;
+  --dsw-alias-label-primary-bluish: #202124;
+  --dsw-alias-label-primary-dimmed: #4b5158;
+  --dsw-alias-label-primary-foreground: #ffffff;
+  --dsw-alias-label-primary-inverted: #ffffff;
+  --dsw-alias-label-secondary: #545b63;
+  --dsw-alias-label-tertiary: #7c848d;
+  --dsw-alias-markdown-citation: #eef2f5;
+  --dsw-alias-markdown-code-block-banner: #eef2f5;
+  --dsw-alias-markdown-code-block: #f5f7f9;
+  --dsw-alias-markdown-code-segment-selected: #e8edf1;
+  --dsw-alias-markdown-code-segment-unselected: #f5f7f9;
+  --dsw-alias-markdown-inline-code: #eef2f5;
+  --dsw-alias-scrollbar-bg-l1: #d6dce2;
+  --dsw-alias-scrollbar-bg-l2: #c9d0d7;
+  --dsw-alias-scrollbar-hover-l1: #bcc4cc;
+  --dsw-alias-scrollbar-hover-l2: #adb6bf;
+  --dsw-alias-state-business-primary: #2563eb;
+  --dsw-alias-tooltip-bg: #24272b;
+  --dsw-specific-bubble: #f3f5f7;
+  --dsw-specific-bubble-highlight: #e7ebef;
+  --dsw-specific-input-major: #ffffff;
+  --dsw-specific-login-input: #ffffff;
+  --dsw-specific-menu: #ffffff;
+  --dsw-specific-selector: #eef2f5;
+  --dsw-specific-sidebar-fill: #eef3f8;
+  --dsw-specific-sidebar-nav-item-active-accent: #dfe7ee;
+  --dsw-specific-sidebar-nav-item-active: #dfe7ee;
+  --dsw-specific-sidebar-nav-item-hover: #e5ecf2;
+  --dsw-specific-tip: #eef2f5;
+  --dsw-shadow-lv2: 0 2px 8px rgb(15 23 42 / 8%), 0 12px 28px rgb(15 23 42 / 5%);
+  --dsw-shadow-lv3: 0 12px 36px rgb(15 23 42 / 14%);
+  background: #ffffff;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] {
+  border-right-color: #dce3e9;
+  background: #eef3f8;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] [class*="_logoRow_"] {
+  height: 56px;
+  margin-bottom: 4px;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] button,
+body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] [role="treeitem"] {
+  border-radius: 9px;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_centerCol_"] {
+  background: #ffffff;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_centerCol_"] [class*="_root_"][data-phase] {
+  --dsh-chat-content-width: 720px;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_centerCol_"] [class*="_root_"][data-phase] > [class*="_header_"] {
+  min-height: 48px;
+  padding-top: 9px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(16px);
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_card_"]:has(textarea) {
+  border-color: #dfe3e7;
+  border-radius: 18px;
+  box-shadow: 0 3px 10px rgb(15 23 42 / 8%), 0 18px 42px rgb(15 23 42 / 5%);
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_card_"]:has(textarea) button[type="submit"] {
+  background: #202124;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
+  box-sizing: border-box;
+  padding: 12px 12px 12px 0;
+  border-left: 0;
+  background: #ffffff;
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] > * {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid #e1e5e9;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%), 0 20px 48px rgb(15 23 42 / 5%);
+}
+
+body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] [class*="_root_"] {
+  border-left: 0;
+}
+
+body[data-dsh-desktop-codex-theme] :focus-visible {
+  outline-color: #202124;
+}
+
+@media (max-width: 1100px) {
+  body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
+    padding-right: 8px;
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "name": "@luo-ross/dsh-desktop",
+  "productName": "DSH Desktop",
+  "version": "0.1.0",
+  "description": "Unofficial community desktop edition of DeepSeek Harness",
+  "author": {
+    "name": "luo-ross",
+    "url": "https://github.com/luo-ross"
+  },
+  "homepage": "https://github.com/luo-ross/dsh-desktop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luo-ross/dsh-desktop.git",
+    "directory": "apps/desktop"
+  },
+  "bugs": {
+    "url": "https://github.com/luo-ross/dsh-desktop/issues"
+  },
+  "type": "module",
+  "main": "main.mjs",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "tar": "7.4.3"
+  },
+  "scripts": {
+    "start": "electron .",
+    "stage-backend": "node scripts/stage-backend.mjs",
+    "package": "pnpm run stage-backend && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.luoross.dshdesktop",
+    "productName": "DSH Desktop",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": {
+      "output": "../../dist-desktop"
+    },
+    "files": [
+      "main.mjs",
+      "preload.cjs",
+      "codex-theme.css",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../desktop-backend.tar.gz",
+        "to": "backend.tar.gz"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DSH-Desktop-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DSH Desktop"
+    }
+  }
+}
