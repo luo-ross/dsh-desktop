@@ -1,7 +1,7 @@
 {
   "name": "@luo-ross/dsh-desktop",
-  "productName": "DSH Desktop",
-  "version": "0.1.0",
+  "productName": "DSH",
+  "version": "0.1.9",
   "description": "Unofficial community desktop edition of DeepSeek Harness",
   "author": {
     "name": "luo-ross",
@@ -23,6 +23,7 @@
     "access": "public"
   },
   "dependencies": {
+    "electron-updater": "6.8.9",
     "tar": "7.4.3"
   },
   "scripts": {
@@ -36,7 +37,7 @@
   },
   "build": {
     "appId": "io.github.luoross.dshdesktop",
-    "productName": "DSH Desktop",
+    "productName": "DSH",
     "asar": true,
     "npmRebuild": false,
     "directories": {
@@ -44,9 +45,14 @@
     },
     "files": [
       "main.mjs",
+      "updater.mjs",
+      "welcome-page.mjs",
+      "window-controls.mjs",
       "preload.cjs",
       "codex-theme.css",
+      "scripts/extract-backend.mjs",
       "build/icon.ico",
+      "build/icon.png",
       "package.json"
     ],
     "extraResources": [
@@ -57,6 +63,7 @@
     ],
     "win": {
       "icon": "build/icon.ico",
+      "electronUpdaterCompatibility": ">= 2.16",
       "target": [
         {
           "target": "nsis",
@@ -65,7 +72,12 @@
           ]
         }
       ],
-      "artifactName": "DSH-Desktop-Setup-${version}.${ext}"
+      "artifactName": "DSH-Windows-x64-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "luo-ross",
+      "repo": "dsh-desktop"
     },
     "nsis": {
       "installerIcon": "build/icon.ico",
@@ -74,7 +86,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "DSH Desktop"
+      "shortcutName": "DSH"
     }
   }
 }
