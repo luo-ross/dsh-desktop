@@ -6,6 +6,12 @@ import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
 import { createUpdaterController } from './updater.mjs'
+import { createWelcomePage } from './welcome-page.mjs'
+import {
+  applyWindowControl,
+  createWindowControlsMarkup,
+  WINDOW_CONTROLS_CSS,
+} from './window-controls.mjs'
 
 const { autoUpdater } = electronUpdater
 
@@ -14,7 +20,9 @@ const HTTP_READY_TIMEOUT_MS = 30_000
 const SHUTDOWN_TIMEOUT_MS = 8_000
 const MAX_DIAGNOSTIC_LENGTH = 8_192
 const BACKEND_READY_MARKER = '.desktop-backend-ready'
+const DEFERRED_UPDATE_MARKER = 'pending-update.json'
 const DESKTOP_THEME_CSS = readFileSync(join(import.meta.dirname, 'codex-theme.css'), 'utf8')
+const DESKTOP_ICON_DATA_URL = `data:image/png;base64,${readFileSync(join(import.meta.dirname, 'build', 'icon.png')).toString('base64')}`
 
 let backendProcess
 let backendExtractionProcess
@@ -24,6 +32,20 @@ let mainWindow
 let shutdownPromise
 let packagedBackendRoot
 let updaterController
+
+function readDeferredUpdateVersion() {
+  try {
+    const marker = JSON.parse(readFileSync(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), 'utf8'))
+    return typeof marker.version === 'string' ? marker.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function rememberDownloadedUpdate(version) {
+  const marker = `${JSON.stringify({ version })}\n`
+  await writeFile(join(app.getPath('userData'), DEFERRED_UPDATE_MARKER), marker, 'utf8')
+}
 
 function backendRequiredPaths(root) {
   return [
@@ -37,13 +59,21 @@ function isPackagedBackendReady(root) {
   return backendRequiredPaths(root).every(path => existsSync(path))
 }
 
-function updateStartupStatus(status, detail = '') {
+function packagedBackendDestination() {
+  return join(app.getPath('userData'), `backend-${app.getVersion()}`)
+}
+
+function updateStartupStatus(status, detail = '', progress = 18) {
   if (mainWindow === undefined || mainWindow.isDestroyed()) return
   const script = `{
     const status = document.getElementById('startup-status');
     const detail = document.getElementById('startup-detail');
+    const progress = document.getElementById('startup-progress');
+    const progressEffects = document.getElementById('startup-progress-effects');
     if (status) status.textContent = ${JSON.stringify(status)};
     if (detail) detail.textContent = ${JSON.stringify(detail)};
+    if (progress) progress.value = ${JSON.stringify(progress)};
+    if (progressEffects) progressEffects.style.width = ${JSON.stringify(`${progress}%`)};
   }`
   void mainWindow.webContents.executeJavaScript(script).catch(() => undefined)
 }
@@ -76,9 +106,14 @@ function extractBackendArchive(archive, destination) {
 
 async function preparePackagedBackend() {
   if (!app.isPackaged) return
-  const destination = join(app.getPath('userData'), `backend-${app.getVersion()}`)
+  const destination = packagedBackendDestination()
   if (isPackagedBackendReady(destination)) {
     packagedBackendRoot = destination
+    updateStartupStatus(
+      '正在快速启动 DeepSeek Harness…',
+      '已复用本机运行环境，无需重复初始化。',
+      62,
+    )
     return
   }
 
@@ -86,7 +121,7 @@ async function preparePackagedBackend() {
   await rm(temporary, { recursive: true, force: true })
   await mkdir(temporary, { recursive: true })
   try {
-    updateStartupStatus('首次启动：正在解压内置后端…', '窗口仍可正常移动和响应，请稍候。')
+    updateStartupStatus('首次启动：正在解压…', '正在准备 DeepSeek Harness 运行环境。', 34)
     await extractBackendArchive(join(process.resourcesPath, 'backend.tar.gz'), temporary)
     const missing = backendRequiredPaths(temporary).slice(1).filter(path => !existsSync(path))
     if (missing.length > 0) {
@@ -254,7 +289,7 @@ function stopBackend() {
   return shutdownPromise
 }
 
-async function createWindow() {
+async function createWindow({ cachedBackend = false } = {}) {
   const window = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -262,18 +297,9 @@ async function createWindow() {
     minHeight: 640,
     show: true,
     backgroundColor: '#ffffff',
-    title: 'DSH Desktop · DeepSeek Harness 桌面版',
+    title: 'DSH · DeepSeek Harness 桌面版',
     icon: join(app.getAppPath(), 'build', 'icon.ico'),
-    ...(process.platform === 'win32'
-      ? {
-          titleBarStyle: 'hidden',
-          titleBarOverlay: {
-            color: '#f7f9fb',
-            symbolColor: '#34383d',
-            height: 38,
-          },
-        }
-      : {}),
+    frame: process.platform !== 'win32',
     webPreferences: {
       preload: join(app.getAppPath(), 'preload.cjs'),
       contextIsolation: true,
@@ -293,34 +319,23 @@ async function createWindow() {
   })
   window.on('page-title-updated', (event) => {
     event.preventDefault()
-    window.setTitle('DSH Desktop · DeepSeek Harness 桌面版')
+    window.setTitle('DSH · DeepSeek Harness 桌面版')
   })
-  const loadingPage = `<!doctype html>
-<html lang="zh-CN">
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>DSH Desktop</title>
-<style>
-  :root { color-scheme: light; font-family: system-ui, sans-serif; background: #f7f9fb; color: #202124; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; box-sizing: border-box; padding-top: 38px; }
-  body::before { content: ''; position: fixed; inset: 0 138px auto 0; height: 38px; -webkit-app-region: drag; }
-  main { text-align: center; padding: 32px; }
-  h1 { margin: 0 0 12px; font-size: 28px; font-weight: 650; }
-  .product { margin: 0 0 28px; color: #6b7280; font-size: 14px; }
-  p { margin: 0; color: #4b5563; font-size: 15px; }
-  .detail { min-height: 20px; margin-top: 8px; color: #8a919e; font-size: 13px; }
-  .spinner { width: 28px; height: 28px; margin: 28px auto 0; border: 3px solid #dce3ea; border-top-color: #202124; border-radius: 50%; animation: spin 0.9s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-<main>
-  <h1>DSH Desktop</h1>
-  <p class="product">DeepSeek Harness 社区桌面版</p>
-  <p id="startup-status">正在准备桌面环境…</p>
-  <p id="startup-detail" class="detail">首次启动可能需要约一分钟。</p>
-  <div class="spinner"></div>
-</main>
-</html>`
+  const publishWindowState = () => {
+    if (!window.isDestroyed()) {
+      window.webContents.send('dsh-desktop:window-state', { maximized: window.isMaximized() })
+    }
+  }
+  window.on('maximize', publishWindowState)
+  window.on('unmaximize', publishWindowState)
+  const loadingPage = createWelcomePage({
+    cachedBackend,
+    frameless: process.platform === 'win32',
+    iconDataUrl: DESKTOP_ICON_DATA_URL,
+    version: app.getVersion(),
+  })
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
+  await installWindowControls(window)
   return window
 }
 
@@ -361,14 +376,67 @@ ipcMain.handle('dsh-desktop:install-update', async (event) => {
   await updaterController?.install()
 })
 
+ipcMain.handle('dsh-desktop:window-control', (event, action) => {
+  assertMainWindowSender(event)
+  return applyWindowControl(mainWindow, action)
+})
+
+async function installWindowControls(window) {
+  if (process.platform !== 'win32') return
+  await window.webContents.executeJavaScript(`{
+    const bridge = globalThis.dshDesktop;
+    if (bridge?.windowControl) {
+      if (!document.getElementById('dsh-window-controls')) {
+        document.body.insertAdjacentHTML('beforeend', ${JSON.stringify(createWindowControlsMarkup())});
+      }
+      const controls = document.getElementById('dsh-window-controls');
+      const maximizeButton = controls.querySelector('[data-window-action="toggle-maximize"]');
+      const renderWindowState = (state) => {
+        const maximized = Boolean(state?.maximized);
+        maximizeButton.setAttribute('aria-label', maximized ? '还原' : '最大化');
+        maximizeButton.querySelector('span').textContent = maximized ? '\\uE923' : '\\uE922';
+      };
+      for (const button of controls.querySelectorAll('button[data-window-action]')) {
+        button.addEventListener('click', () => {
+          const action = button.dataset.windowAction;
+          const request = bridge.windowControl(action);
+          if (action === 'close') void request.catch(() => {});
+          else void request.then(renderWindowState);
+        });
+      }
+      void bridge.windowControl('get-state').then(renderWindowState);
+      const unsubscribe = bridge.onWindowState?.(renderWindowState);
+      if (unsubscribe) window.addEventListener('beforeunload', unsubscribe, { once: true });
+    }
+  }`)
+}
+
 async function installUpdateControl(window) {
   await window.webContents.executeJavaScript(`{
     const bridge = globalThis.dshDesktop;
+    let actions = document.getElementById('dsh-desktop-top-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.id = 'dsh-desktop-top-actions';
+      actions.setAttribute('aria-label', 'DSH 快捷操作');
+      document.body.append(actions);
+    }
+    if (!document.getElementById('dsh-desktop-repository')) {
+      const repository = document.createElement('a');
+      repository.id = 'dsh-desktop-repository';
+      repository.href = 'https://github.com/luo-ross/dsh-desktop';
+      repository.target = '_blank';
+      repository.rel = 'noopener noreferrer';
+      repository.textContent = 'GitHub 仓库';
+      repository.setAttribute('aria-label', '在浏览器中打开 DSH GitHub 仓库');
+      actions.append(repository);
+    }
     if (bridge?.checkForUpdates && !document.getElementById('dsh-desktop-update')) {
       const button = document.createElement('button');
       button.id = 'dsh-desktop-update';
       button.type = 'button';
-      button.setAttribute('aria-label', '检查 DSH Desktop 更新');
+      button.hidden = true;
+      button.setAttribute('aria-label', '检查 DSH 更新');
       let status = 'idle';
       const render = (state) => {
         status = state.status;
@@ -377,20 +445,21 @@ async function installUpdateControl(window) {
           checking: '正在检查…',
           'up-to-date': '已是最新版',
           downloading: state.percent > 0 ? '下载更新 ' + state.percent + '%' : '发现 v' + (state.version ?? ''),
-          downloaded: '重启更新 v' + (state.version ?? ''),
+          downloaded: '立即更新 v' + (state.version ?? ''),
           installing: '正在安装…',
           error: '更新检查失败',
         };
         button.textContent = labels[state.status] ?? '检查更新';
         button.dataset.status = state.status;
+        button.hidden = !['downloading', 'downloaded', 'installing'].includes(state.status);
         button.disabled = state.status === 'checking' || state.status === 'installing';
-        button.title = state.message ?? ('DSH Desktop ' + state.currentVersion);
+        button.title = state.message ?? ('DSH ' + state.currentVersion);
       };
       button.addEventListener('click', () => {
         if (status === 'downloaded') void bridge.installUpdate();
         else void bridge.checkForUpdates();
       });
-      document.body.append(button);
+      actions.append(button);
       void bridge.getUpdateState().then(render);
       const unsubscribe = bridge.onUpdateState(render);
       window.addEventListener('beforeunload', unsubscribe, { once: true });
@@ -403,6 +472,8 @@ async function applyDesktopTheme(window) {
     "document.body.setAttribute('data-dsh-desktop-codex-theme', '')",
   )
   await window.webContents.insertCSS(DESKTOP_THEME_CSS)
+  await window.webContents.insertCSS(WINDOW_CONTROLS_CSS)
+  await installWindowControls(window)
   await installUpdateControl(window)
 }
 
@@ -431,7 +502,9 @@ if (!hasSingleInstanceLock) {
   app.whenReady().then(async () => {
     if (process.platform === 'win32') app.setAppUserModelId('io.github.luoross.dshdesktop')
     Menu.setApplicationMenu(null)
-    mainWindow = await createWindow()
+    const cachedBackend = app.isPackaged
+      && isPackagedBackendReady(packagedBackendDestination())
+    mainWindow = await createWindow({ cachedBackend })
     updaterController = createUpdaterController({
       updater: autoUpdater,
       app,
@@ -439,12 +512,14 @@ if (!hasSingleInstanceLock) {
       showMessageBox: (window, options) => dialog.showMessageBox(window, options),
       stopBackend,
       permitQuit: () => { allowQuit = true },
+      deferredUpdateVersion: readDeferredUpdateVersion(),
+      rememberDownloadedUpdate,
     })
     try {
       await preparePackagedBackend()
-      updateStartupStatus('正在启动 DeepSeek Harness 本地服务…')
+      updateStartupStatus('正在启动 DeepSeek Harness 服务…', '运行环境已准备就绪。', 72)
       backendUrl = await startBackend()
-      updateStartupStatus('正在连接桌面界面…')
+      updateStartupStatus('正在连接 DeepSeek Harness…', '服务已启动，即将进入主界面。', 90)
       await waitForBackendHttp(backendUrl)
       if (!mainWindow.isDestroyed()) {
         await mainWindow.loadURL(backendUrl)
@@ -453,7 +528,7 @@ if (!hasSingleInstanceLock) {
       }
     } catch (error) {
       dialog.showErrorBox(
-        'DSH Desktop 启动失败',
+        'DSH 启动失败',
         error instanceof Error ? error.message : String(error),
       )
       app.quit()
