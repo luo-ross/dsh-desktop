@@ -47,7 +47,7 @@ export function createUpdaterController({
           type: 'info',
           title: '检查更新',
           message: '开发版不检查在线更新',
-          detail: '请安装正式发布的 DSH Desktop 后再使用自动更新。',
+          detail: '请安装正式发布的 DSH 后再使用自动更新。',
         })
       }
       return null
@@ -110,7 +110,7 @@ export function createUpdaterController({
           type: 'info',
           title: '检查更新',
           message: '当前已是最新版本',
-          detail: `DSH Desktop ${app.getVersion()}`,
+          detail: `DSH ${app.getVersion()}`,
         })
       }
       manualCheck = false

@@ -5,6 +5,7 @@ export function createWelcomePage({ cachedBackend = false, frameless, iconDataUr
   const startupDetail = cachedBackend
     ? '已复用本机运行环境，无需重复初始化。'
     : '首次启动可能需要约一分钟。'
+  const startupProgress = cachedBackend ? 62 : 18
 
   return `<!doctype html>
 <html lang="zh-CN">
@@ -12,7 +13,7 @@ export function createWelcomePage({ cachedBackend = false, frameless, iconDataUr
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DSH Desktop</title>
+  <title>DSH</title>
   <style>
     :root {
       color-scheme: light;
@@ -107,30 +108,111 @@ export function createWelcomePage({ cachedBackend = false, frameless, iconDataUr
     }
     .product-mark { display: flex; align-items: center; gap: 12px; color: rgb(255 255 255 / 78%); font-size: 14px; }
     .product-mark img { width: 32px; height: 32px; filter: invert(1); }
-    .product-card h2 { margin: 92px 0 10px; font-size: 34px; font-weight: 520; letter-spacing: -0.02em; }
+    .product-card h2 { margin: 38px 0 8px; font-size: 42px; font-weight: 560; letter-spacing: -0.03em; }
     .product-card .edition { margin: 0; color: rgb(255 255 255 / 82%); font-size: 21px; }
     .status-panel {
       position: absolute;
       right: 44px;
-      bottom: 44px;
+      bottom: 38px;
       left: 44px;
-      padding-top: 21px;
-      border-top: 1px solid rgb(255 255 255 / 24%);
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      column-gap: 16px;
     }
-    #startup-status { margin: 0; font-size: 15px; font-weight: 560; }
-    #startup-detail { min-height: 20px; margin: 8px 0 0; color: rgb(255 255 255 / 66%); font-size: 13px; }
-    .progress { height: 3px; margin-top: 18px; overflow: hidden; border-radius: 3px; background: rgb(255 255 255 / 19%); }
-    .progress::after {
-      content: '';
+    .status-rail {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 2px;
+    }
+    .status-dot {
+      width: 22px;
+      height: 22px;
+      border: 2px solid rgb(255 255 255 / 95%);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 5px #ffffff;
+      background: rgb(255 255 255 / 22%);
+    }
+    .status-line {
+      width: 0;
+      height: 48px;
+      margin: 6px 0;
+      border-left: 2px dashed rgb(255 255 255 / 48%);
+    }
+    .status-dot.pending {
+      border-color: rgb(255 255 255 / 48%);
+      box-shadow: none;
+      background: transparent;
+    }
+    .status-content { min-width: 0; }
+    #startup-status { margin: 0; font-size: 16px; font-weight: 620; line-height: 1.45; }
+    #startup-detail { min-height: 20px; margin: 5px 0 0; color: rgb(255 255 255 / 70%); font-size: 13px; line-height: 1.5; }
+    .progress-wrap {
+      position: relative;
+      height: 4px;
+      margin-top: 13px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgb(255 255 255 / 18%);
+    }
+    .progress {
       display: block;
-      width: 38%;
-      height: 100%;
+      width: 100%;
+      height: 4px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 999px;
+      appearance: none;
+      background: transparent;
+    }
+    .progress::-webkit-progress-bar { border-radius: inherit; background: transparent; }
+    .progress::-webkit-progress-value {
       border-radius: inherit;
       background: #ffffff;
-      animation: loading 1.65s ease-in-out infinite;
+      transition: width 280ms ease-out;
+    }
+    .progress-effects {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow: hidden;
+      border-radius: inherit;
+      transition: width 280ms ease-out;
+      pointer-events: none;
+    }
+    .progress-pulse {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -28%;
+      width: 28%;
+      border-radius: inherit;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgb(100 169 255 / 18%) 18%,
+        #64a9ff 42%,
+        #ffffff 58%,
+        rgb(142 197 255 / 42%) 76%,
+        transparent 100%
+      );
+      box-shadow: 0 0 10px rgb(112 181 255 / 62%);
+      animation: progress-sweep 1.25s linear infinite;
+    }
+    @keyframes progress-sweep {
+      from { left: -28%; }
+      to { left: 100%; }
+    }
+    .next-step { margin-top: 25px; color: rgb(255 255 255 / 48%); }
+    .next-step strong { display: block; font-size: 14px; font-weight: 560; line-height: 1.45; }
+    .next-step span { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; }
+    @media (prefers-reduced-motion: reduce) {
+      .progress::-webkit-progress-value { transition: none; }
+      .progress-effects { transition: none; }
     }
     footer { display: flex; justify-content: space-between; padding: 0 32px; color: #8b98ad; font-size: 12px; }
-    @keyframes loading { 0% { transform: translateX(-120%); } 100% { transform: translateX(300%); } }
     @media (max-width: 980px) {
       .shell { width: min(860px, calc(100% - 48px)); }
       .hero { grid-template-columns: 1fr; gap: 28px; padding: 20px 16px; }
@@ -160,12 +242,25 @@ export function createWelcomePage({ cachedBackend = false, frameless, iconDataUr
       </section>
       <section class="product-card" aria-live="polite">
         <div class="product-mark"><img src="${iconDataUrl}" alt=""><span>DEEPSEEK HARNESS</span></div>
-        <h2>DSH Desktop</h2>
+        <h2>DSH</h2>
         <p class="edition">共赴智能新境</p>
         <div class="status-panel">
-          <p id="startup-status">${startupStatus}</p>
-          <p id="startup-detail">${startupDetail}</p>
-          <div class="progress" aria-hidden="true"></div>
+          <div class="status-rail" aria-hidden="true">
+            <span class="status-dot"></span>
+            <span class="status-line"></span>
+            <span class="status-dot pending"></span>
+          </div>
+          <div class="status-content">
+            <p id="startup-status">${startupStatus}</p>
+            <p id="startup-detail">${startupDetail}</p>
+            <div class="progress-wrap">
+              <progress id="startup-progress" class="progress" max="100" value="${startupProgress}" aria-label="启动进度"></progress>
+              <span id="startup-progress-effects" class="progress-effects" style="width: ${startupProgress}%" aria-hidden="true">
+                <span class="progress-pulse"></span>
+              </span>
+            </div>
+            <div class="next-step"><strong>初始化应用运行环境</strong><span>正在加载服务与资源</span></div>
+          </div>
         </div>
       </section>
     </main>

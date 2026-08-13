@@ -1,37 +1,35 @@
-# Frameless title-bar safe-area QA
+# DSH startup timeline card QA
 
-- Source visual truth: `.artifacts/design-qa/titlebar-overlap-reference-v0.1.7.png` (user-provided packaged-app screenshot).
-- Implementation capture: `.artifacts/design-qa/titlebar-safe-area-v0.1.7.png` (packaged Windows `win-unpacked` v0.1.7 build).
-- Combined comparison: `.artifacts/design-qa/titlebar-safe-area-comparison-v0.1.7.png`.
-- Source viewport: 1450 × 457 pixels at 1x density.
-- Implementation viewport: 1366 × 720 pixels at 1x density; the comparison uses the first 430 pixels at the top edge, where the reported collision occurs.
-- Capture path: the in-app Browser cannot include native Electron window chrome, so the packaged application was exercised and captured through Windows Computer Use.
-
-## Visual comparison
-
-The reference and packaged implementation were placed together in one comparison input. In the reference, session metadata and the `Session log` action occupy the same top-right strip as the app-owned minimize, maximize, and close controls. In v0.1.7, the center column begins below a 38-pixel safe area matching the controls' height. The sidebar remains flush with the top edge, preserving the immersive layout, while the update action remains isolated in the title-bar strip. The details column receives the same safe area plus its existing 12-pixel inset.
-
-## Runtime evidence
-
-- The packaged application launched successfully and stayed responsive through first-run extraction and backend startup.
-- The welcome screen transitioned automatically to the live Harness main window.
-- The main window rendered without a native title bar, startup error, blank strip, or framework overlay.
-- Minimize, maximize, and close controls remained visible and distinct in the reserved top-right strip.
-- Main content starts below the window controls and continues to the bottom edge.
+- Source visual truth: `C:/Users/Administrator/.codex/generated_images/019ffb51-047c-75a2-b56e-3d033f5407f9/exec-09bf331d-a59f-409b-880d-44394bb21738.png`.
+- Implementation: `.artifacts/design-qa/welcome-timeline-dsh-implementation.jpg` captured from the locally packaged Windows `DSH.exe` with a fresh profile.
+- Focused comparison: `.artifacts/design-qa/welcome-timeline-dsh-comparison.jpg` (reference on the left, packaged implementation on the right).
+- Progress animation comparison: `.artifacts/design-qa/welcome-progress-shimmer-clipped-comparison.png` (user reference on the left; two packaged-app frames on the right).
+- Captured viewport: 1366 x 721 at 1x density.
+- Compared card size: 487 x 400 pixels.
 
 ## Required fidelity surfaces
 
-- Typography, colors, assets, and upstream Harness component behavior are unchanged.
-- Only Electron's center and details layout geometry changes; browser-hosted Harness clients are unaffected.
-- The 38-pixel inset matches the app-owned control height and does not introduce a visible title-bar band.
-- Sidebar branding and navigation remain aligned to the window's top edge.
+- Structure: DeepSeek Harness product mark, product name, tagline, active startup step, progress bar, dashed connector, and pending next step are all present in the same hierarchy as the selected reference.
+- Typography: the reference's large product-name treatment is retained while applying the requested shorter `DSH` name.
+- Spacing: the card content follows the reference's top-to-bottom rhythm and no text, progress, or timeline elements overlap.
+- Color and depth: deep DeepSeek blue, white primary copy, subdued secondary copy, rounded corners, and the soft exterior shadow match the selected direction.
+- Copy: service-related startup copy uses `服务`; the product-facing name is `DSH`.
+- Assets: the existing DeepSeek whale asset is used at both product-mark positions without distortion.
+- Motion: a blue-white highlight continuously sweeps from left to right inside the completed-progress segment only; the unfinished track remains static, and the completed width remains controlled by real startup stages.
 
-## Findings
+## Iteration history
 
-1. P1: app-owned window controls could cover session actions and metadata in the top-right of the center column. Fixed with a 38-pixel center-column safe area.
-2. P1: details content could enter the same control strip when the inspector was open. Fixed with the same safe area while retaining the existing 12-pixel card inset.
-3. Post-fix packaged evidence shows the title-bar strip and main content as separate, non-overlapping regions.
+1. The first packaged capture exposed a title/status collision inside the card.
+2. The product-name top margin was reduced from 78px to 38px, the app was rebuilt, and the startup state was captured again with a fresh profile.
+3. The combined comparison confirms that the revised hierarchy is legible and aligned with the chosen two-stage timeline reference.
+4. The initial solid-white moving marker blended into the white completed-progress segment and was not sufficiently visible.
+5. It was replaced by a wider blue-white shimmer. Two packaged-app frames captured 287ms apart show the highlight at different positions without changing the real progress value.
+6. The shimmer was then clipped to the completed-progress width. A fresh packaged build confirms that its two captured positions remain entirely left of the completed/unfinished boundary.
 
-No actionable P0, P1, or P2 findings remain.
+## Result
+
+- P0 issues: none.
+- P1 issues: none.
+- P2 issues: none.
 
 final result: passed

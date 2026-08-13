@@ -63,13 +63,17 @@ function packagedBackendDestination() {
   return join(app.getPath('userData'), `backend-${app.getVersion()}`)
 }
 
-function updateStartupStatus(status, detail = '') {
+function updateStartupStatus(status, detail = '', progress = 18) {
   if (mainWindow === undefined || mainWindow.isDestroyed()) return
   const script = `{
     const status = document.getElementById('startup-status');
     const detail = document.getElementById('startup-detail');
+    const progress = document.getElementById('startup-progress');
+    const progressEffects = document.getElementById('startup-progress-effects');
     if (status) status.textContent = ${JSON.stringify(status)};
     if (detail) detail.textContent = ${JSON.stringify(detail)};
+    if (progress) progress.value = ${JSON.stringify(progress)};
+    if (progressEffects) progressEffects.style.width = ${JSON.stringify(`${progress}%`)};
   }`
   void mainWindow.webContents.executeJavaScript(script).catch(() => undefined)
 }
@@ -108,6 +112,7 @@ async function preparePackagedBackend() {
     updateStartupStatus(
       '正在快速启动 DeepSeek Harness…',
       '已复用本机运行环境，无需重复初始化。',
+      62,
     )
     return
   }
@@ -116,7 +121,7 @@ async function preparePackagedBackend() {
   await rm(temporary, { recursive: true, force: true })
   await mkdir(temporary, { recursive: true })
   try {
-    updateStartupStatus('首次启动：正在解压内置后端…', '窗口仍可正常移动和响应，请稍候。')
+    updateStartupStatus('首次启动：正在解压…', '正在准备 DeepSeek Harness 运行环境。', 34)
     await extractBackendArchive(join(process.resourcesPath, 'backend.tar.gz'), temporary)
     const missing = backendRequiredPaths(temporary).slice(1).filter(path => !existsSync(path))
     if (missing.length > 0) {
@@ -292,7 +297,7 @@ async function createWindow({ cachedBackend = false } = {}) {
     minHeight: 640,
     show: true,
     backgroundColor: '#ffffff',
-    title: 'DSH Desktop · DeepSeek Harness 桌面版',
+    title: 'DSH · DeepSeek Harness 桌面版',
     icon: join(app.getAppPath(), 'build', 'icon.ico'),
     frame: process.platform !== 'win32',
     webPreferences: {
@@ -314,7 +319,7 @@ async function createWindow({ cachedBackend = false } = {}) {
   })
   window.on('page-title-updated', (event) => {
     event.preventDefault()
-    window.setTitle('DSH Desktop · DeepSeek Harness 桌面版')
+    window.setTitle('DSH · DeepSeek Harness 桌面版')
   })
   const publishWindowState = () => {
     if (!window.isDestroyed()) {
@@ -409,11 +414,29 @@ async function installWindowControls(window) {
 async function installUpdateControl(window) {
   await window.webContents.executeJavaScript(`{
     const bridge = globalThis.dshDesktop;
+    let actions = document.getElementById('dsh-desktop-top-actions');
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.id = 'dsh-desktop-top-actions';
+      actions.setAttribute('aria-label', 'DSH 快捷操作');
+      document.body.append(actions);
+    }
+    if (!document.getElementById('dsh-desktop-repository')) {
+      const repository = document.createElement('a');
+      repository.id = 'dsh-desktop-repository';
+      repository.href = 'https://github.com/luo-ross/dsh-desktop';
+      repository.target = '_blank';
+      repository.rel = 'noopener noreferrer';
+      repository.textContent = 'GitHub 仓库';
+      repository.setAttribute('aria-label', '在浏览器中打开 DSH GitHub 仓库');
+      actions.append(repository);
+    }
     if (bridge?.checkForUpdates && !document.getElementById('dsh-desktop-update')) {
       const button = document.createElement('button');
       button.id = 'dsh-desktop-update';
       button.type = 'button';
-      button.setAttribute('aria-label', '检查 DSH Desktop 更新');
+      button.hidden = true;
+      button.setAttribute('aria-label', '检查 DSH 更新');
       let status = 'idle';
       const render = (state) => {
         status = state.status;
@@ -428,14 +451,15 @@ async function installUpdateControl(window) {
         };
         button.textContent = labels[state.status] ?? '检查更新';
         button.dataset.status = state.status;
+        button.hidden = !['downloading', 'downloaded', 'installing'].includes(state.status);
         button.disabled = state.status === 'checking' || state.status === 'installing';
-        button.title = state.message ?? ('DSH Desktop ' + state.currentVersion);
+        button.title = state.message ?? ('DSH ' + state.currentVersion);
       };
       button.addEventListener('click', () => {
         if (status === 'downloaded') void bridge.installUpdate();
         else void bridge.checkForUpdates();
       });
-      document.body.append(button);
+      actions.append(button);
       void bridge.getUpdateState().then(render);
       const unsubscribe = bridge.onUpdateState(render);
       window.addEventListener('beforeunload', unsubscribe, { once: true });
@@ -493,9 +517,9 @@ if (!hasSingleInstanceLock) {
     })
     try {
       await preparePackagedBackend()
-      updateStartupStatus('正在启动 DeepSeek Harness 本地服务…')
+      updateStartupStatus('正在启动 DeepSeek Harness 服务…', '运行环境已准备就绪。', 72)
       backendUrl = await startBackend()
-      updateStartupStatus('正在连接桌面界面…')
+      updateStartupStatus('正在连接 DeepSeek Harness…', '服务已启动，即将进入主界面。', 90)
       await waitForBackendHttp(backendUrl)
       if (!mainWindow.isDestroyed()) {
         await mainWindow.loadURL(backendUrl)
@@ -504,7 +528,7 @@ if (!hasSingleInstanceLock) {
       }
     } catch (error) {
       dialog.showErrorBox(
-        'DSH Desktop 启动失败',
+        'DSH 启动失败',
         error instanceof Error ? error.message : String(error),
       )
       app.quit()
