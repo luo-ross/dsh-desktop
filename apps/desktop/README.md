@@ -8,13 +8,13 @@ English | [中文](README.zh.md)
 
 Download `DSH-Desktop-Setup-<version>.exe` from the repository's [Releases page](https://github.com/luo-ross/dsh-desktop/releases). The NSIS installer supports a custom installation directory and creates desktop and Start menu shortcuts named **DSH Desktop**.
 
-The build is not code-signed. Verify the release SHA-256 before accepting an unknown-publisher warning from Windows SmartScreen. The first launch can take about one minute because the packaged backend must be expanded; the application shows a preparation page until the backend accepts HTTP requests.
+The build is not code-signed. Verify the release SHA-256 before accepting an unknown-publisher warning from Windows SmartScreen. The first launch can take about one minute because the packaged backend must be expanded. Extraction runs in a child process, and the responsive preparation page reports extraction, backend startup, and connection phases until the backend accepts HTTP requests.
 
 ## Configure models and workspaces
 
-Open **Settings → Models** and save a DeepSeek API key or another supported provider. Add or select a workspace from the sidebar before starting a session. New workspace selection starts in the user's Documents directory.
+The first-run page identifies DSH as DeepSeek Harness and identifies DSH Desktop as an unofficial community edition. Continue to **Settings → Models** and save a DeepSeek API key or another supported provider; the DeepSeek editor links directly to the official API-key page. Add or select a workspace from the sidebar before starting a session. New workspace selection uses Electron's Windows folder dialog and starts in the user's Documents directory.
 
-The renderer is the upstream Harness UI, so its model settings, permission presets, tools, sessions, attachments, plugins, and provider behavior are unchanged. The Codex-inspired desktop stylesheet changes presentation only.
+The renderer is the upstream Harness UI, so its model settings, permission presets, tools, sessions, attachments, plugins, and provider behavior are unchanged. The Codex-inspired desktop stylesheet changes presentation only, while Electron supplies the immersive Windows title-bar overlay and desktop folder-picker bridge.
 
 ## Storage and network behavior
 
@@ -34,8 +34,9 @@ Run `pnpm run desktop:pack` from the repository root. The build performs these o
 
 1. Build the Harness host and Web UI.
 2. Deploy the production `@deepseek-ai/dsh` dependency closure with a hoisted node linker.
-3. Create `desktop-backend.tar.gz` so nested dependencies and native files survive Electron Builder packaging.
-4. Build the x64 unpacked application and NSIS installer in `dist-desktop/`.
+3. Overlay the just-built Web frontend and desktop-modified client plugin bundles into the deployed backend so renderer changes ship with the pinned runtime dependency closure.
+4. Create `desktop-backend.tar.gz` so nested dependencies and native files survive Electron Builder packaging.
+5. Build the x64 unpacked application and NSIS installer in `dist-desktop/`.
 
 The generated deployment directory, archive, unpacked application, and installer are ignored by Git. Release binaries are distributed through GitHub Releases rather than committed to the source tree.
 
@@ -46,6 +47,8 @@ The generated deployment directory, archive, unpacked application, and installer
 **Startup reports a missing module or incomplete backend.** Install the newest release. A correctly packaged build carries `backend.tar.gz` and replaces an incomplete versioned extraction automatically.
 
 **The application reports an HTTP timeout or connection reset.** Close DSH Desktop, confirm no older DSH Desktop process remains, then start it again. Preserve the complete error message when reporting a reproducible failure.
+
+**Selecting a workspace reports a Windows folder-dialog worker error.** Install version 0.1.1 or newer. The desktop renderer uses Electron's native folder dialog instead of the upstream Windows helper while preserving silent cancellation and the existing Web fallback.
 
 **A pinned taskbar shortcut shows an old icon.** Unpin it and pin the installed application again; Windows can retain shortcut icon caches across upgrades.
 

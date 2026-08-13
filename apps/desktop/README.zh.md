@@ -8,13 +8,13 @@
 
 从本仓库的 [Releases 页面](https://github.com/luo-ross/dsh-desktop/releases)下载 `DSH-Desktop-Setup-<version>.exe`。NSIS 安装程序支持自定义安装目录，并创建名为 **DSH Desktop** 的桌面与开始菜单快捷方式。
 
-当前构建尚未进行代码签名。接受 Windows SmartScreen 的未知发布者提示前，请核对发行页面公布的 SHA-256。首次启动可能需要约一分钟，因为应用必须先展开随安装包分发的后端；在后端能够接受 HTTP 请求前，窗口会一直显示准备页面。
+当前构建尚未进行代码签名。接受 Windows SmartScreen 的未知发布者提示前，请核对发行页面公布的 SHA-256。首次启动可能需要约一分钟，因为应用必须先展开随安装包分发的后端。解压在子进程中执行；在后端能够接受 HTTP 请求前，保持响应的准备页面会分别显示解压、后端启动和连接阶段。
 
 ## 配置模型与工作区
 
-打开**设置 → 模型**，保存 DeepSeek API Key 或其他受支持的模型提供方。开始会话前，请从侧边栏添加或选择工作区。新增工作区时默认从用户的“文档”目录开始选择。
+首次运行页面会说明 DSH 是 DeepSeek Harness 的简称，并标明 DSH Desktop 是非官方社区桌面版。继续进入**设置 → 模型**后，可以保存 DeepSeek API Key 或其他受支持的模型提供方；DeepSeek 编辑器会直接链接到官方 API Key 页面。开始会话前，请从侧边栏添加或选择工作区。新增工作区使用 Electron 的 Windows 原生文件夹对话框，并默认从用户的“文档”目录开始选择。
 
-渲染器就是上游 Harness UI，因此模型设置、权限预设、工具、会话、附件、插件和模型提供方行为保持不变。受 Codex 启发的桌面样式表只改变界面表现。
+渲染器就是上游 Harness UI，因此模型设置、权限预设、工具、会话、附件、插件和模型提供方行为保持不变。受 Codex 启发的桌面样式表只改变界面表现；Electron 负责沉浸式 Windows 标题栏覆盖层和桌面目录选择桥接。
 
 ## 存储与网络行为
 
@@ -34,8 +34,9 @@ Harness 状态优先使用 `DSH_HOME`，未设置时使用 `~/.dsh`。该目录�
 
 1. 构建 Harness Host 和 Web UI。
 2. 使用 hoisted node linker 部署 `@deepseek-ai/dsh` 的生产依赖闭包。
-3. 创建 `desktop-backend.tar.gz`，确保 Electron Builder 打包后仍保留嵌套依赖和原生文件。
-4. 在 `dist-desktop/` 中生成 x64 免安装目录和 NSIS 安装程序。
+3. 把刚构建的 Web 前端和桌面版修改过的客户端插件 bundle 覆盖到部署后端中，使渲染器改动与固定的运行时依赖闭包一同交付。
+4. 创建 `desktop-backend.tar.gz`，确保 Electron Builder 打包后仍保留嵌套依赖和原生文件。
+5. 在 `dist-desktop/` 中生成 x64 免安装目录和 NSIS 安装程序。
 
 生成的部署目录、归档、免安装应用和安装程序均由 Git 忽略。发行版二进制文件通过 GitHub Releases 分发，不提交到源码树。
 
@@ -46,6 +47,8 @@ Harness 状态优先使用 `DSH_HOME`，未设置时使用 `~/.dsh`。该目录�
 **启动时提示模块缺失或后端不完整。** 请安装最新发行版。正确打包的版本会携带 `backend.tar.gz`，并自动替换未完整解压的版本目录。
 
 **应用提示 HTTP 超时或连接被重置。** 关闭 DSH Desktop，确认没有旧的 DSH Desktop 进程残留，然后重新启动。提交可复现问题时，请保留完整错误信息。
+
+**选择工作区时提示 Windows 文件夹对话框 worker 错误。** 请安装 0.1.1 或更高版本。桌面渲染器会使用 Electron 原生文件夹对话框，不再依赖上游 Windows helper，同时保留静默取消和现有 Web 回退行为。
 
 **固定到任务栏的快捷方式仍显示旧图标。** 取消固定后重新固定已安装应用；Windows 可能在升级后继续使用旧的快捷方式图标缓存。
 
