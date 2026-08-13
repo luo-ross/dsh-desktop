@@ -42,6 +42,18 @@
   border-left: 1px solid var(--dsw-alias-border-l2);
 }
 
+/* Keep the frameless desktop content clear of the top-right controls without
+   making the conversation header feel like a separate title-bar row. */
+:global(body[data-dsh-desktop-codex-theme]) .centerCol {
+  box-sizing: border-box;
+  padding-top: var(--dsh-desktop-titlebar-safe-area, 30px);
+}
+
+:global(body[data-dsh-desktop-codex-theme]) .detailsCol {
+  box-sizing: border-box;
+  padding: calc(var(--dsh-desktop-titlebar-safe-area, 30px) + 12px) 12px 12px 0;
+}
+
 /* The details subtree stays mounted at zero width, so its border must not paint
    a 1px seam. The collapsed sidebar instead retains a bordered compact rail. */
 .frame[data-details-collapsed] .detailsCol {

@@ -1,6 +1,7 @@
 /* Electron-only visual skin matching the light Codex desktop workspace. */
 body[data-dsh-desktop-codex-theme] {
   color-scheme: light;
+  --dsh-desktop-titlebar-safe-area: 30px;
   --dsw-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --dsw-alias-bg-base: #ffffff;
   --dsw-alias-bg-layer-1: #ffffff;
@@ -70,6 +71,90 @@ body[data-dsh-desktop-codex-theme] {
   --dsw-shadow-lv2: 0 2px 8px rgb(15 23 42 / 8%), 0 12px 28px rgb(15 23 42 / 5%);
   --dsw-shadow-lv3: 0 12px 36px rgb(15 23 42 / 14%);
   background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body[data-dsh-desktop-codex-theme]::before {
+  content: '';
+  position: fixed;
+  z-index: 1000;
+  inset: 0 300px auto 280px;
+  height: 32px;
+  -webkit-app-region: drag;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-top-actions {
+  position: fixed;
+  z-index: 1001;
+  top: 6px;
+  left: 296px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  -webkit-app-region: no-drag;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-repository,
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font: 12px/1 var(--dsw-font-family);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-repository {
+  border: 1px solid #dce2e8;
+  background: rgb(255 255 255 / 82%);
+  color: #59616a;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update {
+  border: 1px solid #4d6bfe;
+  background: #4d6bfe;
+  color: #ffffff;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update[hidden] {
+  display: none;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-repository:hover {
+  border-color: #cbd3db;
+  background: #ffffff;
+  color: #202124;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update:hover {
+  border-color: #3d5bea;
+  background: #3d5bea;
+  color: #ffffff;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update[data-status="downloaded"] {
+  border-color: #2459ad;
+  background: #2459ad;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+body[data-dsh-desktop-codex-theme] #dsh-desktop-update:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+body[data-dsh-desktop-codex-theme] #root {
+  height: 100%;
 }
 
 body[data-dsh-desktop-codex-theme] [class*="_sidebarCol_"] {
@@ -113,8 +198,6 @@ body[data-dsh-desktop-codex-theme] [class*="_card_"]:has(textarea) button[type="
 }
 
 body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
-  box-sizing: border-box;
-  padding: 12px 12px 12px 0;
   border-left: 0;
   background: #ffffff;
 }

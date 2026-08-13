@@ -18,6 +18,8 @@ import type { en } from './locales.ts'
 import { OnboardingModal } from './OnboardingModal.tsx'
 import styles from './DeepSeekOnboardingDialog.module.css'
 
+const DEEPSEEK_API_KEYS_URL = 'https://platform.deepseek.com/api_keys'
+
 /** Registration-side dependencies of {@link DeepSeekOnboardingDialog}. */
 export interface DeepSeekOnboardingInjected {
   hooks: {
@@ -112,6 +114,16 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
           cancelLabel="onboardingLater"
           submitLabel="onboardingSave"
           submitBusyLabel="onboardingSaving"
+          footerLeading={(
+            <a
+              className={styles.apiLink}
+              href={DEEPSEEK_API_KEYS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('onboardingApiLink')}
+            </a>
+          )}
           onClose={finishCredential}
         />
       </div>
