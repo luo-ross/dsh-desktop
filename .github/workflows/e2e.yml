@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v6
         if: steps.api-key.outputs.available == 'true'
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         if: steps.api-key.outputs.available == 'true'
 
       - uses: actions/setup-node@v6
