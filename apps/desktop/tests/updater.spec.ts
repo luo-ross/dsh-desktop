@@ -37,6 +37,7 @@ function setup(options: {
   const permitQuit = vi.fn()
   const timers: Array<{ callback: () => void; milliseconds: number }> = []
   const intervals: Array<() => void> = []
+  const clock = { now: 1_000_000 }
   const controller = createUpdaterController({
     updater,
     app: { isPackaged: options.packaged ?? true, getVersion: () => '0.1.2' },
@@ -47,10 +48,11 @@ function setup(options: {
     platform: 'win32',
     setTimeoutFn: (callback, milliseconds) => { timers.push({ callback, milliseconds }); return 0 },
     setIntervalFn: (callback) => { intervals.push(callback); return 0 },
+    nowFn: () => clock.now,
   })
   return {
     updater, send, showMessageBox, stopBackend, permitQuit,
-    timers, intervals, controller,
+    timers, intervals, clock, controller,
   }
 }
 
@@ -132,5 +134,63 @@ describe('desktop updater controller', () => {
     expect(b.showMessageBox).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       message: '开发版不检查在线更新',
     }))
+  })
+
+  it('rechecks on a stale focus trigger and skips fresh ones', async () => {
+    const b = setup()
+    b.controller.start()
+    await b.controller.checkIfStale(5 * 60_000)
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+
+    b.clock.now += 60_000
+    await b.controller.checkIfStale(5 * 60_000)
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+
+    b.clock.now += 5 * 60_000
+    await b.controller.checkIfStale(5 * 60_000)
+    expect(b.updater.checkForUpdates).toHaveBeenCalledTimes(2)
+  })
+
+  it('shares one in-flight check across overlapping stale triggers', async () => {
+    const b = setup()
+    b.controller.start()
+    let release: ((value: unknown) => void) | undefined
+    b.updater.checkForUpdates.mockReturnValueOnce(new Promise((resolve) => { release = resolve }))
+    const first = b.controller.checkIfStale(5 * 60_000)
+    const second = b.controller.checkIfStale(5 * 60_000)
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+
+    release?.({ updateInfo: { version: '0.1.3' } })
+    await Promise.all([first, second])
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+  })
+
+  it('skips the startup timer when a focus check already finished recently', async () => {
+    const b = setup()
+    b.controller.start()
+    await b.controller.checkIfStale(5 * 60_000)
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+
+    b.timers[0]?.callback()
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+  })
+
+  it('runs the periodic interval only when the last finished check is stale', async () => {
+    const b = setup()
+    b.controller.start()
+    await b.controller.checkIfStale(5 * 60_000)
+
+    b.intervals[0]?.()
+    expect(b.updater.checkForUpdates).toHaveBeenCalledOnce()
+
+    b.clock.now += 6 * 60 * 60_000
+    b.intervals[0]?.()
+    await vi.waitFor(() => { expect(b.updater.checkForUpdates).toHaveBeenCalledTimes(2) })
+  })
+
+  it('does not recheck before start has configured the updater', async () => {
+    const b = setup()
+    await b.controller.checkIfStale(0)
+    expect(b.updater.checkForUpdates).not.toHaveBeenCalled()
   })
 })

@@ -12,7 +12,7 @@ The build is not code-signed. Verify the release SHA-256 before accepting an unk
 
 ## Updates
 
-Installed builds check the public GitHub Releases feed shortly after startup and every six hours while running. A new stable version downloads in the background; a blue update control appears only after an update is available, reports progress, and changes to an immediate update action when the verified installer is ready. Downloading never schedules installation on application exit or a later launch. Only clicking the ready action stops the bundled backend, runs the installer silently, and relaunches the application without any further input. Development and unpacked builds do not contact the release feed.
+Installed builds check the public GitHub Releases feed shortly after startup, again whenever the window regains focus after five quiet minutes, and every six hours while running. A new stable version downloads in the background; the blue update control stays visible in the top-left action group, doubles as a manual check in idle states, reports progress, and changes to an immediate update action when the verified installer is ready. Downloading never schedules installation on application exit or a later launch. Only clicking the ready action stops the bundled backend, runs the installer silently, and relaunches the application without any further input. Development and unpacked builds do not contact the release feed.
 
 ## Configure models and workspaces
 

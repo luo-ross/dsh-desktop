@@ -12,9 +12,11 @@ describe('desktop top actions', () => {
     expect(themeSource).toMatch(/#dsh-desktop-top-actions\s*\{[^}]*left: 296px;/s)
   })
 
-  it('shows the blue update action only after an update is available', () => {
-    expect(mainSource).toContain("button.hidden = !['downloading', 'downloaded', 'installing'].includes(state.status)")
+  it('keeps the blue update action always visible as the manual check control', () => {
+    expect(mainSource).toContain("idle: '检查更新'")
+    expect(mainSource).toContain("button.disabled = state.status === 'checking' || state.status === 'installing'")
+    expect(mainSource).not.toContain('button.hidden')
     expect(themeSource).toMatch(/#dsh-desktop-update\s*\{[^}]*background: #4d6bfe;/s)
-    expect(themeSource).toMatch(/#dsh-desktop-update\[hidden\]\s*\{\s*display: none;/s)
+    expect(themeSource).not.toMatch(/#dsh-desktop-update\[hidden\]/)
   })
 })

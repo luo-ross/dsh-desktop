@@ -34,7 +34,14 @@ describe('desktop welcome page', () => {
   it('uses the short DSH name for Windows packaging and shortcuts', async () => {
     const manifest = JSON.parse(await import('node:fs/promises').then(fs =>
       fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
-    ))
+    )) as {
+      productName: string
+      build: {
+        productName: string
+        nsis: { shortcutName: string }
+        win: { artifactName: string }
+      }
+    }
 
     expect(manifest.productName).toBe('DSH')
     expect(manifest.build.productName).toBe('DSH')

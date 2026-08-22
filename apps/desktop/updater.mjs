@@ -1,5 +1,7 @@
 const DEFAULT_CHECK_DELAY_MS = 12_000
 const DEFAULT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
+/** Minimum gap between completed checks before a window-focus recheck triggers. */
+export const DEFAULT_FOCUS_RECHECK_MIN_INTERVAL_MS = 5 * 60 * 1_000
 
 const UPDATE_ERROR_MESSAGE = '更新服务暂时不可用'
 const UPDATE_ERROR_DETAIL = '请检查网络连接后重试。如果问题持续，可前往 GitHub Releases 手动下载最新版本。'
@@ -16,6 +18,7 @@ export function createUpdaterController({
   checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
   setTimeoutFn = setTimeout,
   setIntervalFn = setInterval,
+  nowFn = Date.now,
 }) {
   let state = { status: 'idle', currentVersion: app.getVersion() }
   let checkPromise
@@ -23,6 +26,8 @@ export function createUpdaterController({
   let downloaded = false
   let started = false
   let installPromise
+  /** Completion time of the last finished check; 0 means none has finished yet. */
+  let lastCheckFinishedAt = 0
 
   const publish = (next) => {
     state = { currentVersion: app.getVersion(), ...next }
@@ -69,7 +74,23 @@ export function createUpdaterController({
       return null
     } finally {
       checkPromise = undefined
+      lastCheckFinishedAt = nowFn()
     }
+  }
+
+  /**
+   * Run a silent check only when the last finished check is at least `maxAgeMs`
+   * old. Used by the window-focus recheck, the startup delay, and the periodic
+   * interval so one completion resets the shared staleness clock for all of
+   * them. In-flight checks are shared, and fresh ones are a no-op.
+   * @param maxAgeMs - minimum age of the last finished check before checking.
+   * @returns the check result, a shared in-flight promise, or null when skipped.
+   */
+  const checkIfStale = async (maxAgeMs) => {
+    if (!started || !app.isPackaged || platform !== 'win32') return null
+    if (checkPromise !== undefined) return await checkPromise
+    if (nowFn() - lastCheckFinishedAt < maxAgeMs) return null
+    return await check()
   }
 
   const install = async () => {
@@ -130,13 +151,17 @@ export function createUpdaterController({
       publish({ status: 'error', message: UPDATE_ERROR_MESSAGE })
     })
 
-    setTimeoutFn(() => void check(), checkDelayMs)
-    setIntervalFn(() => void check(), checkIntervalMs)
+    // Every trigger routes through checkIfStale, so the first completion of any
+    // one of them resets the shared staleness clock and the next delayed timer
+    // does not repeat a fresh check (e.g. a focus recheck during startup).
+    setTimeoutFn(() => void checkIfStale(checkDelayMs), checkDelayMs)
+    setIntervalFn(() => void checkIfStale(checkIntervalMs), checkIntervalMs)
   }
 
   return {
     start,
     check,
+    checkIfStale,
     install,
     getState: () => state,
   }

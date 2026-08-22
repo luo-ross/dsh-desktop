@@ -125,10 +125,6 @@ body[data-dsh-desktop-codex-theme] #dsh-desktop-update {
   color: #ffffff;
 }
 
-body[data-dsh-desktop-codex-theme] #dsh-desktop-update[hidden] {
-  display: none;
-}
-
 body[data-dsh-desktop-codex-theme] #dsh-desktop-repository:hover {
   border-color: #cbd3db;
   background: #ffffff;

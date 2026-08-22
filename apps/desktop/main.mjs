@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
 import { BACKEND_RUNTIME_PATHS, backendLaunchArguments } from './backend-contract.mjs'
-import { createUpdaterController } from './updater.mjs'
+import { DEFAULT_FOCUS_RECHECK_MIN_INTERVAL_MS, createUpdaterController } from './updater.mjs'
 import { createWelcomePage } from './welcome-page.mjs'
 import {
   applyWindowControl,
@@ -428,7 +428,6 @@ async function installUpdateControl(window) {
       const button = document.createElement('button');
       button.id = 'dsh-desktop-update';
       button.type = 'button';
-      button.hidden = true;
       button.setAttribute('aria-label', '检查 DSH 更新');
       let status = 'idle';
       const render = (state) => {
@@ -444,7 +443,6 @@ async function installUpdateControl(window) {
         };
         button.textContent = labels[state.status] ?? '检查更新';
         button.dataset.status = state.status;
-        button.hidden = !['downloading', 'downloaded', 'installing'].includes(state.status);
         button.disabled = state.status === 'checking' || state.status === 'installing';
         button.title = state.message ?? ('DSH ' + state.currentVersion);
       };
@@ -505,6 +503,12 @@ if (!hasSingleInstanceLock) {
       showMessageBox: (window, options) => dialog.showMessageBox(window, options),
       stopBackend,
       permitQuit: () => { allowQuit = true },
+    })
+    // Returning to the window silently rechecks after the minimum gap, so a
+    // release published while the app ran is found within seconds of focus
+    // instead of waiting out the six-hour interval.
+    mainWindow.on('focus', () => {
+      void updaterController?.checkIfStale(DEFAULT_FOCUS_RECHECK_MIN_INTERVAL_MS)
     })
     try {
       await preparePackagedBackend()

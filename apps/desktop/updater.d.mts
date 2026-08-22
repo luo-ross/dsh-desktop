@@ -19,6 +19,8 @@ export interface UpdaterState {
 export interface UpdaterController {
   start: () => void
   check: (options?: { manual?: boolean }) => Promise<unknown>
+  /** Silent check only when the last finished check is at least this old. */
+  checkIfStale: (maxAgeMs: number) => Promise<unknown>
   install: () => Promise<void>
   getState: () => UpdaterState
 }
@@ -38,4 +40,5 @@ export function createUpdaterController(options: {
   checkIntervalMs?: number
   setTimeoutFn?: (callback: () => void, milliseconds: number) => unknown
   setIntervalFn?: (callback: () => void, milliseconds: number) => unknown
+  nowFn?: () => number
 }): UpdaterController
