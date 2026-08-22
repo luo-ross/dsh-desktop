@@ -357,6 +357,10 @@
   margin-top: 2px;
 }
 
+.groupSection > *:first-child + * {
+  margin-top: 0;
+}
+
 .searchStatus,
 .searchWarning {
   padding: 10px 12px;

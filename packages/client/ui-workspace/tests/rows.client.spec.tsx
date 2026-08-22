@@ -575,8 +575,10 @@ describe('workspace browser rows', () => {
       key: 'project', workspaceId: wid('project'), cwd: 'C:\\projects\\project', createdAt: 0, label: 'Project',
       sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
     }
-    render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} onOpenLocation={onOpenLocation} t={t} />)
+    const view = render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} onOpenLocation={onOpenLocation} t={t} />)
+    expect(view.container.children).toHaveLength(1)
     fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 20 })
+    expect(screen.getByRole('menu').className).toMatch(/compactList/)
     fireEvent.click(screen.getByRole('menuitem', { name: '打开所在位置' }))
     expect(onOpenLocation).toHaveBeenCalledWith('C:\\projects\\project')
     expect(screen.queryByRole('menu')).toBeNull()

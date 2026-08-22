@@ -5,7 +5,7 @@ import { get } from 'node:http'
 import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
-import { BACKEND_RUNTIME_PATHS } from './backend-contract.mjs'
+import { BACKEND_RUNTIME_PATHS, backendLaunchArguments } from './backend-contract.mjs'
 import { createUpdaterController } from './updater.mjs'
 import { createWelcomePage } from './welcome-page.mjs'
 import {
@@ -178,7 +178,7 @@ function startBackend() {
 
   const child = spawn(
     process.execPath,
-    ['--expose-internals', entry, 'web', '--host', '127.0.0.1', '--port', '0'],
+    backendLaunchArguments(entry),
     {
       cwd: app.getPath('documents'),
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },

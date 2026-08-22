@@ -108,18 +108,20 @@ function RevealContextMenu({ position, onReveal, onClose, t }: {
   onClose: () => void
   t: RowTranslate
 }) {
+  if (position === null) return null
   return (
     <Menu
-      open={position !== null}
+      open
       anchor={null}
       items={[{ id: 'open-location', label: t('actions.openLocation'), icon: <IconFolderOpen16 /> }]}
       onSelect={() => { onClose(); onReveal() }}
       onClose={onClose}
       portal
-      getAnchorRect={() => position === null ? null : ({
+      compact
+      getAnchorRect={() => ({
         left: position.x, top: position.y, right: position.x, bottom: position.y,
         width: 0, height: 0, x: position.x, y: position.y, toJSON: () => ({}),
-      } as DOMRect)}
+      })}
     />
   )
 }
@@ -258,8 +260,8 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
       {revealCwd !== undefined && onOpenLocation !== undefined && (
         <RevealContextMenu
           position={contextMenu}
-          onReveal={() => onOpenLocation(revealCwd)}
-          onClose={() => setContextMenu(null)}
+          onReveal={() => { onOpenLocation(revealCwd) }}
+          onClose={() => { setContextMenu(null) }}
           t={t}
         />
       )}
@@ -454,6 +456,7 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
     <div
       className={clsx(
         css.sessionRow, selected && css.selected, menuOpen && css.menuOpen,
+        !flat && css.nestedSessionRow,
         flat && !showStatus && css.flatSessionRowWithoutStatus,
         drag?.marker === 'before' && css.dropBefore, drag?.marker === 'after' && css.dropAfter,
       )}
@@ -548,8 +551,8 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
       {revealCwd !== undefined && onOpenLocation !== undefined && (
         <RevealContextMenu
           position={contextMenu}
-          onReveal={() => onOpenLocation(revealCwd)}
-          onClose={() => setContextMenu(null)}
+          onReveal={() => { onOpenLocation(revealCwd) }}
+          onClose={() => { setContextMenu(null) }}
           t={t}
         />
       )}

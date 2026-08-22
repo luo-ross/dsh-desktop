@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { BACKEND_RUNTIME_PATHS } from '../backend-contract.mjs'
+import { BACKEND_RUNTIME_PATHS, backendLaunchArguments } from '../backend-contract.mjs'
 
 const root = resolve(import.meta.dirname, '..', '..', '..')
 
@@ -23,5 +23,18 @@ describe('packaged backend contract', () => {
       'node_modules', '@deepseek-ai', 'cordis-plugin-group', 'package.json',
     ])
     expect(desktopManifest.build?.files).toContain('backend-contract.mjs')
+  })
+
+  it('starts the embedded Web host without opening the system browser', () => {
+    expect(backendLaunchArguments('C:\\runtime\\dsh\\lib\\bin.js')).toEqual([
+      '--expose-internals',
+      'C:\\runtime\\dsh\\lib\\bin.js',
+      'web',
+      '--host',
+      '127.0.0.1',
+      '--port',
+      '0',
+      '--no-open',
+    ])
   })
 })

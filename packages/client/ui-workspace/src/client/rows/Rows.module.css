@@ -113,6 +113,11 @@
   animation: row-in 150ms var(--ds-ease-in-out);
 }
 
+/* Grouped rows sit one tree step below their Workspace header. */
+.nestedSessionRow {
+  padding-left: 30px;
+}
+
 .sessionRow .title {
   margin: 0 6px 0 4px;
 }
