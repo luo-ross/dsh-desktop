@@ -288,10 +288,15 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
   // enter/leave traversal runs over the React tree, so trigger and portaled
   // list are one region here. Aiming back at the trigger, or crossing the 4px
   // gap between them, therefore never counts as leaving.
+  //
+  // Portal mode with a null anchor renders an EMPTY wrapper (the list is
+  // portaled to body): an empty inline-level box still contributes a strut
+  // line box inside block containers, shifting every following sibling while
+  // the menu is open — `.anchorless` suppresses the box entirely.
   return (
     <span
       ref={rootRef}
-      className={clsx(css.root, className)}
+      className={clsx(css.root, portal && anchor === null && css.anchorless, className)}
       onPointerEnter={closeOnPointerLeave ? cancelClose : undefined}
       onPointerLeave={closeOnPointerLeave ? () => { if (open) armClose() } : undefined}
     >

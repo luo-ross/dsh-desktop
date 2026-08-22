@@ -3,6 +3,17 @@
   display: inline-flex;
 }
 
+/* Portal mode with a null anchor (Menu.tsx): the wrapper has no in-flow
+   content — the list is portaled to body — so it must not generate a box.
+   An empty inline-flex box would still contribute a strut line box in block
+   containers, pushing every following sibling (e.g. workspace tree rows)
+   down by one line-height while the menu is open. `display: contents`
+   removes the box without unmounting the wrapper (refs and React event
+   delegation keep working). */
+.anchorless {
+  display: contents;
+}
+
 /* Dropdown card (figma MenuDropdown 122:9481 / 419:16920): menu surface,
  * r12, inverted hairline border, shadow-lv3, 4px inset padding. */
 .list,
