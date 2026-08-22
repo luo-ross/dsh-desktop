@@ -100,7 +100,7 @@ describe('desktop updater controller', () => {
     })
   })
 
-  it('installs a downloaded update immediately without another confirmation', async () => {
+  it('installs a downloaded update silently and relaunches without further input', async () => {
     const b = setup()
     b.controller.start()
     b.updater.emit('update-downloaded', { version: '0.1.3' })
@@ -109,7 +109,7 @@ describe('desktop updater controller', () => {
     expect(b.showMessageBox).not.toHaveBeenCalled()
     expect(b.stopBackend).toHaveBeenCalledOnce()
     expect(b.permitQuit).toHaveBeenCalledOnce()
-    expect(b.updater.quitAndInstall).toHaveBeenCalledWith(false, true)
+    expect(b.updater.quitAndInstall).toHaveBeenCalledWith(true, true)
   })
 
   it('waits for an explicit install action after downloading an update', async () => {

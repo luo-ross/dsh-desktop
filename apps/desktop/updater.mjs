@@ -82,7 +82,10 @@ export function createUpdaterController({
       publish({ ...state, status: 'installing' })
       await stopBackend()
       permitQuit()
-      updater.quitAndInstall(false, true)
+      // Silent install: the assisted NSIS installer would otherwise show its
+      // wizard pages after the ready action was already clicked. `/S` installs
+      // with no further input, and `--force-run` relaunches the app afterwards.
+      updater.quitAndInstall(true, true)
     })()
     return await installPromise
   }
