@@ -6,6 +6,8 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 
 > DSH 是社区项目，并非 DeepSeek AI 官方产品。DeepSeek Harness 名称和鲸鱼标志归其相应权利人所有。
 
+<a id="run"></a>
+
 ## 运行
 
 前往 [GitHub Releases](https://github.com/luo-ross/dsh-desktop/releases/latest) 下载最新版 Windows x64 安装程序。安装时可以选择目标目录，并可创建桌面与开始菜单快捷方式。
@@ -30,7 +32,7 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 
 桌面外壳只监听本机回环地址，关闭渲染进程的 Node.js 集成，并使用系统浏览器打开外部 HTTP 链接。外壳本身不增加遥测；安装包内的上游 Harness 和用户配置的模型提供方仍保留各自的网络行为。
 
-安装、存储、构建、故障排查和限制的完整说明参见[桌面版参考文档](apps/desktop/README.md)。
+安装、存储、构建、故障排查和限制的完整说明参见[桌面版参考文档](apps/desktop/README.zh.md)。
 
 ## 从源码运行
 

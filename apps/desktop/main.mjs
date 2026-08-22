@@ -381,6 +381,14 @@ ipcMain.handle('dsh-desktop:window-control', (event, action) => {
   return applyWindowControl(mainWindow, action)
 })
 
+ipcMain.handle('dsh-desktop:open-path', async (event, path) => {
+  assertMainWindowSender(event)
+  if (typeof path !== 'string' || path === '') {
+    throw new Error('open-path requires a non-empty path string')
+  }
+  return await shell.openPath(path)
+})
+
 async function installWindowControls(window) {
   if (process.platform !== 'win32') return
   await window.webContents.executeJavaScript(`{

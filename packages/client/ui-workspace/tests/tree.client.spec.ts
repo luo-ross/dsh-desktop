@@ -48,6 +48,13 @@ describe('deriveGroups', () => {
     expect(deriveFlat(sessions, noArchive)[0]).toMatchObject({ pendingInteraction: 'plan-review', running: true })
   })
 
+  it('threads the Host Workspace directory path into grouped and flat session rows', () => {
+    const sessions = list(summary('owned', 1, '/projects/first'), summary('loose', 9, '/other'))
+    const grouped = deriveGroups(sessions, [workspace('first', ['owned'])], noArchive, view(['first']))
+    expect(grouped[0]!.sessions[0]).toMatchObject({ cwd: '/projects/first' })
+    expect(deriveFlat(sessions, noArchive).find(row => row.id === sid('loose'))).toMatchObject({ cwd: '/other' })
+  })
+
   it('puts only real unaccounted Sessions in the trailing Ungrouped group', () => {
     const sessions = list(summary('owned', 1, '/projects/first'), summary('loose', 9, '/other'))
     const groups = deriveGroups(sessions, [workspace('first', ['owned'])], noArchive, view([UNGROUPED_KEY]))

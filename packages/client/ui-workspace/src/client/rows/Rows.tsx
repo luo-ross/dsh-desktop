@@ -13,6 +13,7 @@ import {
   IconTrashOutline16, IconTriangleRightFill14, Menu, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+import { abbreviateHomePath } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import { relativeTime } from '../tree.ts'
@@ -50,7 +51,7 @@ function createdLabel(createdAt: number, t: RowTranslate): string {
   return t('hover.created', { time: `${date} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` })
 }
 
-/** Hover-card body: workspace title, full directory path, absolute creation time. */
+/** Hover-card body: workspace title, display directory path, absolute creation time. */
 function WorkspaceHoverContent({ label, cwd, createdAt, t }: {
   label: string
   cwd: string | undefined
@@ -96,6 +97,34 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
 }
 
 /**
+ * Right-click context menu for a row with a Host Workspace directory: a single
+ * "open location" entry that reveals the path in the OS file manager. Anchors
+ * at the pointer through `getAnchorRect` (portal mode), so no trigger element
+ * is rendered.
+ */
+function RevealContextMenu({ position, onReveal, onClose, t }: {
+  position: { x: number; y: number } | null
+  onReveal: () => void
+  onClose: () => void
+  t: RowTranslate
+}) {
+  return (
+    <Menu
+      open={position !== null}
+      anchor={null}
+      items={[{ id: 'open-location', label: t('actions.openLocation'), icon: <IconFolderOpen16 /> }]}
+      onSelect={() => { onClose(); onReveal() }}
+      onClose={onClose}
+      portal
+      getAnchorRect={() => position === null ? null : ({
+        left: position.x, top: position.y, right: position.x, bottom: position.y,
+        width: 0, height: 0, x: position.x, y: position.y, toJSON: () => ({}),
+      } as DOMRect)}
+    />
+  )
+}
+
+/**
  * Project (workspace) header row: folder + title;
  * hover reveals the chevron and create button, and dwelling on a real
  * Workspace shows its hover card (the ungrouped bucket has none).
@@ -104,10 +133,11 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.onToggle - expand/collapse the group.
  * @param props.onCreate - start a frontend Session inside this Workspace.
  * @param props.drag - optional workspace-row drag wiring.
+ * @param props.home - host account home for POSIX hover-path abbreviation.
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, t }: {
+export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home, onOpenLocation, t }: {
   group: GroupNode
   onToggle: () => void
   onCreate: () => void
@@ -115,6 +145,10 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, t }: 
   actions?: { rename: () => void; delete: () => void } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
+  /** Host account home; POSIX home-rooted hover paths display as `~`. */
+  home?: string | undefined
+  /** Reveal the Workspace directory in the OS file manager (right-click). */
+  onOpenLocation?: ((cwd: string) => void) | undefined
   t: RowTranslate
 }) {
   const row = group
@@ -122,6 +156,8 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, t }: 
   const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
   const active = group.expanded && group.containsCurrent
   const [menuOpen, setMenuOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const revealCwd = onOpenLocation !== undefined && row.cwd !== undefined ? row.cwd : undefined
   const workspaceMenuItems = [
     { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
     { id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutline16 />, danger: true },
@@ -141,6 +177,13 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, t }: 
           drag.start()
         }}
       onDragEnd={drag?.end}
+      onContextMenu={revealCwd === undefined
+        ? undefined
+        : (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setContextMenu({ x: e.clientX, y: e.clientY })
+        }}
     >
       <span className={clsx(css.slot, css.folder, active && css.folderActive)}>
         {row.expanded ? <IconFolderOpen16 /> : <IconFolderClose16 />}
@@ -192,16 +235,35 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, t }: 
     </div>
   )
   // The ungrouped bucket has no backing Workspace: no card to show.
-  if (row.createdAt === undefined) return ownRow
+  const rowContent = row.createdAt === undefined
+    ? ownRow
+    : (
+      <HoverCard
+        anchor={ownRow}
+        content={<WorkspaceHoverContent
+          label={row.label}
+          cwd={row.cwd === undefined ? undefined : abbreviateHomePath(row.cwd, home)}
+          createdAt={row.createdAt}
+          t={t}
+        />}
+        disabled={menuOpen}
+        copyText={row.cwd}
+        copyLabel={t('copy')}
+        copiedLabel={t('hover.copied')}
+      />
+    )
   return (
-    <HoverCard
-      anchor={ownRow}
-      content={<WorkspaceHoverContent label={row.label} cwd={row.cwd} createdAt={row.createdAt} t={t} />}
-      disabled={menuOpen}
-      copyText={row.cwd}
-      copyLabel={t('copy')}
-      copiedLabel={t('hover.copied')}
-    />
+    <>
+      {rowContent}
+      {revealCwd !== undefined && onOpenLocation !== undefined && (
+        <RevealContextMenu
+          position={contextMenu}
+          onReveal={() => onOpenLocation(revealCwd)}
+          onClose={() => setContextMenu(null)}
+          t={t}
+        />
+      )}
+    </>
   )
 }
 
@@ -350,7 +412,7 @@ export function SearchResultItem({ result, currentId, onOpen, t }: {
  * @param props.t - the browser root's locale seat.
  * @returns the session row.
  */
-export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork, onArchive, drag, flat = false, t }: {
+export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork, onArchive, drag, flat = false, onOpenLocation, t }: {
   node: SessionNode
   currentId: string | undefined
   now: number
@@ -365,6 +427,8 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
   drag?: RowDragProps | undefined
   /** The row is rendered without a parent Workspace header. */
   flat?: boolean | undefined
+  /** Reveal the session's Host Workspace directory in the OS file manager (right-click). */
+  onOpenLocation?: ((cwd: string) => void) | undefined
   t: RowTranslate
 }) {
   const row = node
@@ -374,6 +438,8 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
   const primaryStatus = statuses[0]
   const showStatus = primaryStatus.state !== 'done' || row.completed
   const [menuOpen, setMenuOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const revealCwd = onOpenLocation !== undefined && node.cwd !== undefined ? node.cwd : undefined
   // Archive hides the row through the registry-global archive set and never
   // touches the session log, so it is not styled as destructive and needs no
   // confirmation dialog.
@@ -417,6 +483,13 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
           if (!drag.active) return
           e.preventDefault()
           drag.drop(rowHalf(e))
+        }}
+      onContextMenu={revealCwd === undefined
+        ? undefined
+        : (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setContextMenu({ x: e.clientX, y: e.clientY })
         }}
     >
       {/* Pending interaction and own or descendant activity outrank the
@@ -463,13 +536,23 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
     </div>
   )
   return (
-    <HoverCard
-      anchor={ownRow}
-      content={<SessionHoverContent node={node} now={now} t={t} />}
-      disabled={menuOpen || drag?.active === true}
-      copyText={row.blank ? undefined : row.title}
-      copyLabel={t('copy')}
-      copiedLabel={t('hover.copied')}
-    />
+    <>
+      <HoverCard
+        anchor={ownRow}
+        content={<SessionHoverContent node={node} now={now} t={t} />}
+        disabled={menuOpen || drag?.active === true}
+        copyText={row.blank ? undefined : row.title}
+        copyLabel={t('copy')}
+        copiedLabel={t('hover.copied')}
+      />
+      {revealCwd !== undefined && onOpenLocation !== undefined && (
+        <RevealContextMenu
+          position={contextMenu}
+          onReveal={() => onOpenLocation(revealCwd)}
+          onClose={() => setContextMenu(null)}
+          t={t}
+        />
+      )}
+    </>
   )
 }

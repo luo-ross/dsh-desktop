@@ -216,8 +216,10 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessions' | 'startSession' | 'open' | 'forkSession'
-  | 'insertWorkspaceBefore' | 'insertSessionBefore' | 't'
+  | 'insertWorkspaceBefore' | 'insertSessionBefore' | 'openLocation' | 't'
 > & {
+  /** Host account home for POSIX hover-path abbreviation. */
+  home?: string | undefined
   workspaces: readonly WorkspaceView[]
   /** Explicit persisted zero-or-five-session state by Workspace group. */
   groupExpansion: Readonly<Record<string, boolean>>
@@ -249,9 +251,9 @@ type SessionTreeProps = Pick<
 function SessionTree({
   useSessions, startSession, open, forkSession, workspaces, archivedSessionIds,
   onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive,
-  insertWorkspaceBefore, insertSessionBefore, orderBy,
+  insertWorkspaceBefore, insertSessionBefore, orderBy, openLocation,
   groupExpansion, setGroupExpanded,
-  sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
+  sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
   const current = list.current
@@ -450,7 +452,9 @@ function SessionTree({
             >
               <ProjectRowItem
                 group={group}
+                home={home}
                 t={t}
+                onOpenLocation={openLocation}
                 onToggle={() => {
                   if (group.expanded) {
                     setExpandedSessionGroups(keys => keys.filter(key => key !== group.key))
@@ -517,6 +521,7 @@ function SessionTree({
                     onFork={forkSession}
                     onArchive={onSessionArchive}
                     drag={dragProps}
+                    onOpenLocation={openLocation}
                     t={t}
                   />
                 )
@@ -545,7 +550,7 @@ function SessionTree({
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
   useSessions, open, forkSession, onSessionRename, onSessionArchive, archivedSessionIds,
-  orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
+  orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, openLocation, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessions'
@@ -559,6 +564,7 @@ function FlatList({
   | 'sessionUpdatedAtByAccount'
   | 'syncSessionOrderAccount'
   | 'setSessionOrder'
+  | 'openLocation'
   | 't'
 >) {
   const list = useSessions(s => s)
@@ -633,6 +639,7 @@ function FlatList({
               onFork={forkSession}
               onArchive={onSessionArchive}
               flat
+              onOpenLocation={openLocation}
               drag={{
                 start: () => {
                   dropCommitted.current = false
@@ -755,12 +762,15 @@ export function WorkspaceBrowser({
   archiveSession,
   insertSessionBefore,
   createWorkspace,
+  openLocation,
   searchSessions,
   searchResultLimit,
   useDirectoryFlow,
+  useHostDescription,
   renderSlot,
   t,
 }: WorkspaceBrowserProps) {
+  const home = useHostDescription(description => description?.home)
   const workspaces = useWorkspaces(state => state.items)
   const workspacePhase = useWorkspaces(state => state.phase)
   const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
@@ -772,6 +782,31 @@ export function WorkspaceBrowser({
   const groupExpansion = useStore(s => s.groupExpansion)
   const sessionOrderByAccount = useStore(s => s.sessionOrderByAccount)
   const sessionUpdatedAtByAccount = useStore(s => s.sessionUpdatedAtByAccount)
+  const currentBlankSessionId = useSessions((state) => {
+    const current = state.current
+    return current !== undefined && state.byId[current]?.blank === true ? current : undefined
+  })
+  const currentBlankAccount = currentBlankSessionId === undefined
+    ? undefined
+    : (workspaces.find(workspace => workspace.sessionIds.includes(currentBlankSessionId))
+      ?.workspaceId as string | undefined) ?? UNGROUPED_KEY
+  const promotedBlank = useRef<{ sessionId: SessionId; accountKey: string } | undefined>(undefined)
+  useEffect(() => {
+    if (currentBlankSessionId === undefined || currentBlankAccount === undefined) {
+      promotedBlank.current = undefined
+      return
+    }
+    if (promotedBlank.current?.sessionId === currentBlankSessionId
+      && promotedBlank.current.accountKey === currentBlankAccount) return
+    promotedBlank.current = { sessionId: currentBlankSessionId, accountKey: currentBlankAccount }
+    for (const accountKey of new Set([currentBlankAccount, FLAT_SESSION_ORDER_KEY])) {
+      const previous = sessionOrderByAccount[accountKey] ?? []
+      actions.setSessionOrder(accountKey, [
+        currentBlankSessionId,
+        ...previous.filter(id => id !== currentBlankSessionId),
+      ])
+    }
+  }, [actions.setSessionOrder, currentBlankAccount, currentBlankSessionId, sessionOrderByAccount])
   useEffect(() => {
     if (workspacePhase !== 'ready') return
     actions.retainAccountKeys([
@@ -817,8 +852,13 @@ export function WorkspaceBrowser({
     searchInput.current?.focus({ preventScroll: true })
   }, [wide, searchExpanded, searchOnExpand])
 
+  // Outside-click dismissal stays off while the rail gesture is in flight
+  // (searchOnExpand): the rail click flips the shell wide and mounts this
+  // listener during its own dispatch, then keeps bubbling to document with
+  // the now-unmounted rail button as its target — outside searchRoot, so the
+  // listener would dismiss the search that click just opened.
   useEffect(() => {
-    if (!wide || !searchExpanded) return
+    if (!wide || !searchExpanded || searchOnExpand) return
     const onClick = (event: MouseEvent): void => {
       if (!(event.target instanceof Node) || searchRoot.current?.contains(event.target) === true) return
       searchInput.current?.blur()
@@ -827,7 +867,7 @@ export function WorkspaceBrowser({
     }
     document.addEventListener('click', onClick)
     return () => { document.removeEventListener('click', onClick) }
-  }, [normalizedQuery, wide, searchExpanded])
+  }, [normalizedQuery, wide, searchExpanded, searchOnExpand])
 
   useEffect(() => {
     if (normalizedQuery === '') {
@@ -1130,6 +1170,7 @@ export function WorkspaceBrowser({
                 sessionUpdatedAtByAccount={sessionUpdatedAtByAccount}
                 syncSessionOrderAccount={actions.syncSessionOrderAccount}
                 setSessionOrder={actions.setSessionOrder}
+                openLocation={openLocation}
                 t={t}
               />
             )
@@ -1152,6 +1193,8 @@ export function WorkspaceBrowser({
                 insertWorkspaceBefore={insertWorkspaceBefore}
                 insertSessionBefore={insertSessionBefore}
                 orderBy={orderBy}
+                openLocation={openLocation}
+                home={home}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {
                   setRenameTarget({ workspaceId, currentTitle })

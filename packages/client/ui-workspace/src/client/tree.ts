@@ -30,6 +30,8 @@ export interface SessionNode {
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
   updatedAt: number
+  /** Host Workspace directory path; the right-click "open location" target. */
+  cwd?: string
 }
 
 /** Session order selected by the Workspace browser. */
@@ -223,6 +225,7 @@ function sessionNode(
     runningSubagentCount: descendants.get(s.id)?.runningCount ?? 0,
     completed: s.completed === true,
     updatedAt: s.updatedAt,
+    ...(s.cwd === undefined ? {} : { cwd: s.cwd }),
     ...(s.pendingInteraction === undefined ? {} : { pendingInteraction: s.pendingInteraction }),
   }
 }

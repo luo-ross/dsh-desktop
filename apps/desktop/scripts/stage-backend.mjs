@@ -30,6 +30,7 @@ const clientOverlays = [
   ['ui-layout', '@deepseek-ai/dsh-client-ui-layout'],
   ['ui-settings-models', '@deepseek-ai/dsh-client-ui-settings-models'],
   ['ui-directory-picker-native', '@deepseek-ai/dsh-client-ui-directory-picker-native'],
+  ['ui-workspace', '@deepseek-ai/dsh-client-ui-workspace'],
 ]
 const pnpmEntry = process.env.npm_execpath
 

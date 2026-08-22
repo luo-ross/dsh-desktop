@@ -266,4 +266,4 @@ minimumReleaseAgeExclude:
   - '@deepseek-ai/node-addon-landlock-run@0.1.1'
 
 patchedDependencies:
-  node-pty@1.1.0: patches/node-pty@1.1.0.patch
+  node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch

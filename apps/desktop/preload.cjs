@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('dshDesktop', Object.freeze({
     electron: process.versions.electron,
   }),
   pickDirectory: () => ipcRenderer.invoke('dsh-desktop:pick-directory'),
+  openPath: (path) => ipcRenderer.invoke('dsh-desktop:open-path', path),
   getUpdateState: () => ipcRenderer.invoke('dsh-desktop:get-update-state'),
   checkForUpdates: () => ipcRenderer.invoke('dsh-desktop:check-for-updates'),
   installUpdate: () => ipcRenderer.invoke('dsh-desktop:install-update'),

@@ -304,6 +304,62 @@ describe('workspace browser rows', () => {
     }
   })
 
+  it('workspace hover card shows a POSIX home descendant as ~ and still copies the full path', async () => {
+    vi.useFakeTimers()
+    const writeText = vi.fn(async () => {})
+    const restoreClipboard = installClipboard(writeText)
+    try {
+      const group: GroupNode = {
+        key: 'project', workspaceId: wid('project'), cwd: '/home/u/Documents/project', createdAt: 0, label: 'Project',
+        sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+      }
+      render(<ProjectRowItem group={group} home="/home/u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.getByText('~/Documents/project')).toBeTruthy()
+      expect(screen.queryByText('/home/u/Documents/project')).toBeNull()
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: '复制: /home/u/Documents/project' })) })
+      expect(writeText).toHaveBeenCalledWith('/home/u/Documents/project')
+    } finally {
+      restoreClipboard()
+      vi.useRealTimers()
+    }
+  })
+
+  it('workspace hover card without a directory omits the path and copy action', async () => {
+    vi.useFakeTimers()
+    try {
+      const group: GroupNode = {
+        key: 'project', workspaceId: wid('project'), cwd: undefined, createdAt: 0, label: 'Project',
+        sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+      }
+      render(<ProjectRowItem group={group} home="/home/u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.getAllByText('Project')).toHaveLength(2)
+      expect(screen.getByText(/^创建于 \d+年\d+月\d+日 /)).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /^复制:/ })).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('workspace hover card leaves a Windows path verbatim', async () => {
+    vi.useFakeTimers()
+    try {
+      const group: GroupNode = {
+        key: 'project', workspaceId: wid('project'), cwd: 'C:\\Users\\u\\project', createdAt: 0, label: 'Project',
+        sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+      }
+      render(<ProjectRowItem group={group} home="C:\\Users\\u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.getByText('C:\\Users\\u\\project')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('ungrouped bucket renders no workspace menu', () => {
     const group: GroupNode = {
       key: '', workspaceId: undefined, cwd: undefined, createdAt: undefined, label: 'Ungrouped',
@@ -511,5 +567,52 @@ describe('workspace browser rows', () => {
         onRename={vi.fn()} onFork={vi.fn()} onArchive={vi.fn()} drag={after} t={t} />,
     )
     expect(screen.getByRole('treeitem').className).toMatch(/dropAfter/)
+  })
+
+  it('workspace row right-click reveals the directory through the context menu', () => {
+    const onOpenLocation = vi.fn()
+    const group: GroupNode = {
+      key: 'project', workspaceId: wid('project'), cwd: 'C:\\projects\\project', createdAt: 0, label: 'Project',
+      sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+    }
+    render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} onOpenLocation={onOpenLocation} t={t} />)
+    fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 20 })
+    fireEvent.click(screen.getByRole('menuitem', { name: '打开所在位置' }))
+    expect(onOpenLocation).toHaveBeenCalledWith('C:\\projects\\project')
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('workspace row without the reveal bridge shows no context menu on right-click', () => {
+    const group: GroupNode = {
+      key: 'project', workspaceId: wid('project'), cwd: 'C:\\projects\\project', createdAt: 0, label: 'Project',
+      sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+    }
+    render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+    fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 20 })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('session row right-click reveals its Host Workspace directory', () => {
+    const onOpenLocation = vi.fn()
+    const node: SessionNode = {
+      id: sid('s1'), title: 'One', blank: false, running: false,
+      runningSubagentCount: 0, completed: false, updatedAt: 0, cwd: 'C:\\projects\\project',
+    }
+    render(<SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()}
+      onRename={vi.fn()} onFork={vi.fn()} onArchive={vi.fn()} onOpenLocation={onOpenLocation} t={t} />)
+    fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 20 })
+    fireEvent.click(screen.getByRole('menuitem', { name: '打开所在位置' }))
+    expect(onOpenLocation).toHaveBeenCalledWith('C:\\projects\\project')
+  })
+
+  it('session row without a Workspace path shows no context menu', () => {
+    const node: SessionNode = {
+      id: sid('s1'), title: 'One', blank: false, running: false,
+      runningSubagentCount: 0, completed: false, updatedAt: 0,
+    }
+    render(<SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()}
+      onRename={vi.fn()} onFork={vi.fn()} onArchive={vi.fn()} onOpenLocation={vi.fn()} t={t} />)
+    fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 10, clientY: 20 })
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 })
