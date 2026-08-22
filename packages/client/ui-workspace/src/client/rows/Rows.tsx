@@ -100,7 +100,8 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * Right-click context menu for a row with a Host Workspace directory: a single
  * "open location" entry that reveals the path in the OS file manager. Anchors
  * at the pointer through `getAnchorRect` (portal mode), so no trigger element
- * is rendered.
+ * is rendered. Renders in the standard menu style shared with the row-action
+ * ("...") menus.
  */
 function RevealContextMenu({ position, onReveal, onClose, t }: {
   position: { x: number; y: number } | null
@@ -117,7 +118,6 @@ function RevealContextMenu({ position, onReveal, onClose, t }: {
       onSelect={() => { onClose(); onReveal() }}
       onClose={onClose}
       portal
-      compact
       getAnchorRect={() => ({
         left: position.x, top: position.y, right: position.x, bottom: position.y,
         width: 0, height: 0, x: position.x, y: position.y, toJSON: () => ({}),
