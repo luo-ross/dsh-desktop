@@ -5,7 +5,8 @@
  * The default intent prefers the default browser for documents it renders when
  * the platform can name one, then falls back to the default application. WSL
  * translates every path for the Windows desktop instead of assuming a Linux
- * GUI. The text-editor intent never consults the browser.
+ * GUI. The text-editor intent never consults the browser, and on Windows it
+ * falls back to Notepad when the file has no registered association.
  */
 
 import { release as osRelease } from 'node:os'
@@ -107,12 +108,65 @@ async function openWindowsPath(path: string, signal: AbortSignal, run: PathOpene
 }
 
 /** Translate a WSL path before handing it to the Windows desktop. */
-async function openWslPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
+async function translateWslPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<string> {
   const translated = await run('wslpath', ['-w', path], signal)
   signal.throwIfAborted()
   const windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
   if (windowsPath === '') throw new Error('wslpath returned no Windows path')
-  await openWindowsPath(windowsPath, signal, run)
+  return windowsPath
+}
+
+/** Whether a Windows file-type association names a handler for one extension. */
+async function hasWindowsFileAssociation(extension: string, signal: AbortSignal, run: PathOpenerRunner): Promise<boolean> {
+  // The modern per-user choice answers first; the classic machine-wide
+  // mapping is the fallback. Both queries fail when no handler exists.
+  const stores: ReadonlyArray<readonly [string, ...string[]]> = [
+    ['reg.exe', 'query', `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\${extension}\\UserChoice`, '/v', 'ProgId'],
+    ['reg.exe', 'query', `HKEY_CLASSES_ROOT\\${extension}`, '/ve'],
+  ]
+  for (const [command, ...args] of stores) {
+    try {
+      await run(command, args, signal)
+      return true
+    } catch {
+      // No handler recorded in this store; try the next one.
+    }
+  }
+  return false
+}
+
+/**
+ * Launch Notepad on one path without waiting for the editor to exit:
+ * `Invoke-Item` returns immediately through ShellExecute, while a direct
+ * `notepad.exe` spawn would keep the open RPC pending until the editor closes.
+ */
+async function openWithNotepad(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
+  await run('powershell.exe', [
+    '-NoProfile',
+    '-Command',
+    `Start-Process -FilePath notepad.exe -ArgumentList ${powershellLiteral(path)}`,
+  ], signal)
+}
+
+/**
+ * Open a Windows text document in an editor: the registered association when
+ * one exists, otherwise Notepad. The association is probed first because
+ * `Invoke-Item` on an association-less file exits successfully while opening
+ * nothing, so a failure-based fallback alone would never trigger.
+ */
+async function openWindowsTextFile(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
+  const extension = extname(path).toLowerCase()
+  if (extension === '' || !await hasWindowsFileAssociation(extension, signal, run)) {
+    await openWithNotepad(path, signal, run)
+    return
+  }
+  try {
+    await openWindowsPath(path, signal, run)
+  } catch {
+    signal.throwIfAborted()
+    // A stale or broken association still leaves the user with an editor.
+    await openWithNotepad(path, signal, run)
+  }
 }
 
 /** Dispatch one shell-free platform command for the requested open intent. */
@@ -136,13 +190,16 @@ async function openNativePathWithIntent(
   }
 
   if (platform === 'win32') {
-    await openWindowsPath(path, signal, run)
+    if (intent === 'text-editor') await openWindowsTextFile(path, signal, run)
+    else await openWindowsPath(path, signal, run)
     return
   }
 
   if (platform === 'linux') {
     if (wsl) {
-      await openWslPath(path, signal, run)
+      const windowsPath = await translateWslPath(path, signal, run)
+      if (intent === 'text-editor') await openWindowsTextFile(windowsPath, signal, run)
+      else await openWindowsPath(windowsPath, signal, run)
       return
     }
     await run('xdg-open', [path], signal)
@@ -188,7 +245,8 @@ export function openNativePath(
 
 /**
  * Open a text document for editing; macOS bypasses the file-type association
- * so a YAML association with a browser cannot consume the gesture.
+ * so a YAML association with a browser cannot consume the gesture, and Windows
+ * falls back to Notepad when the extension has no registered association.
  * @param path - absolute or host-resolvable text-document path.
  * @param signal - caller/connection lifetime; abort terminates the native command.
  * @param internals - Platform and runner hooks for deterministic tests.

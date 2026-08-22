@@ -56,6 +56,16 @@ describe('native path opener', () => {
     expect(run.mock.calls).toEqual([
       ['wslpath', ['-w', '/home/test user/settings.yaml'], requestSignal],
       [
+        'reg.exe',
+        [
+          'query',
+          'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.yaml\\UserChoice',
+          '/v',
+          'ProgId',
+        ],
+        requestSignal,
+      ],
+      [
         'powershell.exe',
         [
           '-NoProfile',
@@ -97,14 +107,107 @@ describe('native path opener', () => {
     )
   })
 
-  it('uses the Windows desktop association for text documents', async () => {
-    const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '', stderr: '' }))
+  it('uses the Windows desktop association for text documents when one exists', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      return { stdout: '', stderr: '' }
+    }
     await openNativeTextFile('C:\\work\\settings.yaml', signal(), { platform: 'win32', run })
-    expect(run).toHaveBeenCalledWith(
-      'powershell.exe',
-      ['-NoProfile', '-Command', "Invoke-Item -LiteralPath 'C:\\work\\settings.yaml'"],
-      expect.any(AbortSignal),
-    )
+    expect(calls).toEqual([
+      [
+        'reg.exe', 'query',
+        'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.yaml\\UserChoice',
+        '/v', 'ProgId',
+      ],
+      ['powershell.exe', '-NoProfile', '-Command', "Invoke-Item -LiteralPath 'C:\\work\\settings.yaml'"],
+    ])
+  })
+
+  it('probes the classic association store when no user choice is recorded', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      if (command === 'reg.exe' && args.includes('/v')) throw new Error('UserChoice not found')
+      return { stdout: '', stderr: '' }
+    }
+    await openNativeTextFile('C:\\work\\settings.yaml', signal(), { platform: 'win32', run })
+    expect(calls[1]).toEqual(['reg.exe', 'query', 'HKEY_CLASSES_ROOT\\.yaml', '/ve'])
+    expect(calls[2]?.[0]).toBe('powershell.exe')
+  })
+
+  it('opens association-less Windows text documents with Notepad', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      if (command === 'reg.exe') throw new Error('association not found')
+      return { stdout: '', stderr: '' }
+    }
+    await openNativeTextFile('C:\\work\\settings.yaml', signal(), { platform: 'win32', run })
+    expect(calls.map(call => call[0])).toEqual(['reg.exe', 'reg.exe', 'powershell.exe'])
+    expect(calls[2]).toEqual([
+      'powershell.exe', '-NoProfile', '-Command',
+      "Start-Process -FilePath notepad.exe -ArgumentList 'C:\\work\\settings.yaml'",
+    ])
+  })
+
+  it('opens extension-less Windows text documents directly in Notepad', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      return { stdout: '', stderr: '' }
+    }
+    await openNativeTextFile('C:\\work\\README', signal(), { platform: 'win32', run })
+    expect(calls.map(call => call[0])).toEqual(['powershell.exe'])
+    expect(calls[0]).toEqual([
+      'powershell.exe', '-NoProfile', '-Command',
+      "Start-Process -FilePath notepad.exe -ArgumentList 'C:\\work\\README'",
+    ])
+  })
+
+  it('falls back to Notepad when the associated opener fails', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      if (command === 'powershell.exe' && args.join(' ').includes('Invoke-Item')) {
+        throw new Error('association broken')
+      }
+      return { stdout: '', stderr: '' }
+    }
+    await openNativeTextFile('C:\\work\\settings.yaml', signal(), { platform: 'win32', run })
+    expect(calls[1]?.[3]).toContain('Invoke-Item')
+    expect(calls[2]).toEqual([
+      'powershell.exe', '-NoProfile', '-Command',
+      "Start-Process -FilePath notepad.exe -ArgumentList 'C:\\work\\settings.yaml'",
+    ])
+  })
+
+  it('re-raises the abort reason when the association open is aborted', async () => {
+    const abort = new AbortController()
+    abort.abort(new Error('closed'))
+    const run = vi.fn<PathOpenerRunner>(async (command) => {
+      if (command === 'reg.exe') return { stdout: '', stderr: '' }
+      throw abort.signal.reason
+    })
+    await expect(openNativeTextFile('C:\\work\\settings.yaml', abort.signal, { platform: 'win32', run }))
+      .rejects.toThrow('closed')
+  })
+
+  it('opens WSL text documents in Notepad when Windows has no association', async () => {
+    const calls: string[][] = []
+    const run = async (command: string, args: readonly string[]) => {
+      calls.push([command, ...args])
+      if (command === 'wslpath') return { stdout: 'C:\\workspace\\settings.yaml\n', stderr: '' }
+      if (command === 'reg.exe') throw new Error('association not found')
+      return { stdout: '', stderr: '' }
+    }
+    await openNativeTextFile('/home/test/settings.yaml', signal(), {
+      platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: {}, run,
+    })
+    expect(calls.at(-1)).toEqual([
+      'powershell.exe', '-NoProfile', '-Command',
+      "Start-Process -FilePath notepad.exe -ArgumentList 'C:\\workspace\\settings.yaml'",
+    ])
   })
 
   it('opens with Linux xdg-open', async () => {
@@ -317,5 +420,10 @@ describe('canOpenNativePath', () => {
       || marked(env.DISPLAY) || marked(env.WAYLAND_DISPLAY)
 
     expect(canOpenNativePath({ platform: 'linux', osRelease: '6.8.0-generic' })).toBe(expected)
+  })
+
+  it('samples the ambient platform when no override is supplied', () => {
+    const desktopPlatform = process.platform === 'darwin' || process.platform === 'win32'
+    expect(canOpenNativePath({ osRelease: '6.8.0-generic', env: {} })).toBe(desktopPlatform)
   })
 })
