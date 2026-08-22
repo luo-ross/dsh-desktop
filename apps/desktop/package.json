@@ -1,7 +1,7 @@
 {
   "name": "@luo-ross/dsh-desktop",
   "productName": "DSH",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Unofficial community desktop edition of DeepSeek Harness",
   "author": {
     "name": "luo-ross",
