@@ -34,6 +34,8 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 
 安装、存储、构建、故障排查和限制的完整说明参见[桌面版参考文档](apps/desktop/README.zh.md)。
 
+<a id="run-from-source"></a>
+
 ## 从源码运行
 
 安装 Node.js 22.19 或更高版本以及 pnpm 11.7，然后执行：

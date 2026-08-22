@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-22-desktop-backend-runtime-closure.md
+2026-08-22-desktop-backend-runtime-closure.md: 10ea4b4ae07d0ab689b6d224750b7e24785847dc
+2026-08-22-desktop-backend-runtime-closure.zh.md: dc87fb2f7c9185324f9f402ea1fb7324d6928674

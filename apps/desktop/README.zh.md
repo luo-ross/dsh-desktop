@@ -37,7 +37,7 @@ Harness 状态优先使用 `DSH_HOME`，未设置时使用 `~/.dsh`。该目录�
 在仓库根目录运行 `pnpm run desktop:pack`。构建过程依次执行：
 
 1. 构建 Harness Host 和 Web UI。
-2. 使用 hoisted node linker 部署 `@deepseek-ai/dsh` 的生产依赖闭包。
+2. 使用 hoisted node linker 部署 `@deepseek-ai/dsh` 的生产依赖闭包和仓库规范的运行时 peer 根依赖，并拒绝缺少任何必要运行文件的部署。
 3. 把刚构建的 Web 前端和桌面版修改过的客户端插件 bundle 覆盖到部署后端中，使渲染器改动与固定的运行时依赖闭包一同交付。
 4. 创建 `desktop-backend.tar.gz`，确保 Electron Builder 打包后仍保留嵌套依赖和原生文件。
 5. 在 `dist-desktop/` 中生成 x64 免安装目录、NSIS 安装程序、`latest.yml` 和差分下载 blockmap。

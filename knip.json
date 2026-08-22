@@ -657,7 +657,7 @@
     },
     "apps/desktop-backend": {
       "ignoreDependencies": [
-        "@deepseek-ai/dsh"
+        "@deepseek-ai/.+"
       ]
     },
     "packages/subagent/subagent-dsh-sdk": {

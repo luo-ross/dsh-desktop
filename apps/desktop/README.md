@@ -37,7 +37,7 @@ Install the repository prerequisites, run `pnpm install`, then execute `pnpm run
 Run `pnpm run desktop:pack` from the repository root. The build performs these operations:
 
 1. Build the Harness host and Web UI.
-2. Deploy the production `@deepseek-ai/dsh` dependency closure with a hoisted node linker.
+2. Deploy the production `@deepseek-ai/dsh` dependency closure and the repository's canonical runtime peer roots with a hoisted node linker, then reject a deployment missing any required runtime file.
 3. Overlay the just-built Web frontend and desktop-modified client plugin bundles into the deployed backend so renderer changes ship with the pinned runtime dependency closure.
 4. Create `desktop-backend.tar.gz` so nested dependencies and native files survive Electron Builder packaging.
 5. Build the x64 unpacked application, NSIS installer, `latest.yml`, and differential-download blockmap in `dist-desktop/`.

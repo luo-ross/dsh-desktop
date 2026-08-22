@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { create } from 'tar'
+import { BACKEND_RUNTIME_PATHS } from '../backend-contract.mjs'
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = resolve(desktopRoot, '..', '..')
@@ -54,6 +55,13 @@ const result = spawnSync(
 )
 if (result.error) throw result.error
 if (result.status !== 0) process.exit(result.status ?? 1)
+
+const missingRuntimePaths = BACKEND_RUNTIME_PATHS
+  .map(segments => resolve(output, ...segments))
+  .filter(path => !existsSync(path))
+if (missingRuntimePaths.length > 0) {
+  throw new Error(`deployed desktop backend is missing required runtime files:\n${missingRuntimePaths.join('\n')}`)
+}
 
 if (!existsSync(resolve(builtFrontend, 'index.html'))) {
   throw new Error('desktop frontend overlay is missing; run the Web build before staging')

@@ -1,7 +1,7 @@
 {
   "name": "@luo-ross/dsh-desktop",
   "productName": "DSH",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Unofficial community desktop edition of DeepSeek Harness",
   "author": {
     "name": "luo-ross",
@@ -45,6 +45,7 @@
     },
     "files": [
       "main.mjs",
+      "backend-contract.mjs",
       "updater.mjs",
       "welcome-page.mjs",
       "window-controls.mjs",

@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-桌面应用在运行时接收每位用户的 DeepSeek API Key。仓库 fork 不一定另有 CI 密钥，但专用的[真实 API e2e 工作流](../../../../.github/workflows/e2e.yml)会把缺少 `DEEPSEEK_API_KEY_EXTERNAL` Actions secret 视为每次可信 push 的配置错误。这会让无关改动失败，尽管应用会正确地向用户请求凭证。原工作流及其安全模型仍记录在[针对外部 DeepSeek API 的 CI 真实 API e2e](2026-06-19-real-api-e2e-ci.md)中。
+桌面应用在运行时接收每位用户的 DeepSeek API Key。仓库 fork 不一定另有 CI 密钥，但专用的[真实 API e2e 工作流](../../../../.github/workflows/e2e.yml)会把缺少 `DEEPSEEK_API_KEY_EXTERNAL` Actions secret 视为每次可信 push 的配置错误。这会让无关改动失败，尽管应用会正确地向用户请求凭证。原工作流及其安全模型仍记录在[针对外部 DeepSeek API 的 CI 真实 API e2e](2026-06-19-real-api-e2e-ci.zh.md)中。
 
 ## 决策
 

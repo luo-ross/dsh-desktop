@@ -5,6 +5,7 @@ import { get } from 'node:http'
 import { join } from 'node:path'
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron'
 import electronUpdater from 'electron-updater'
+import { BACKEND_RUNTIME_PATHS } from './backend-contract.mjs'
 import { createUpdaterController } from './updater.mjs'
 import { createWelcomePage } from './welcome-page.mjs'
 import {
@@ -50,8 +51,7 @@ async function rememberDownloadedUpdate(version) {
 function backendRequiredPaths(root) {
   return [
     join(root, BACKEND_READY_MARKER),
-    join(root, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
-    join(root, 'node_modules', 'yaml', 'dist', 'index.js'),
+    ...BACKEND_RUNTIME_PATHS.map(segments => join(root, ...segments)),
   ]
 }
 

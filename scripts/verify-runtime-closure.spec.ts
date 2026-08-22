@@ -30,6 +30,12 @@ function workspace(root: string, name: string, manifest: Record<string, unknown>
   writeFileSync(path, `${JSON.stringify({ name, ...manifest }, null, 2)}\n`)
 }
 
+function appWorkspace(root: string, directory: string, name: string, manifest: Record<string, unknown>): void {
+  const path = join(root, 'apps', directory, 'package.json')
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, `${JSON.stringify({ name, ...manifest }, null, 2)}\n`)
+}
+
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
@@ -161,5 +167,26 @@ describe('verifyRuntimeClosure', () => {
 
     expect(result.workspacePackageCount).toBe(1)
     expect(result.failures).toEqual(['runtime -> @scope/root -> @scope/required'])
+  })
+
+  it('follows application workspaces before checking their package peers', async () => {
+    const root = fixture({
+      'python/sdk-runtime/package.json': { name: 'runtime', dependencies: { '@scope/app': '1.0.0' } },
+      'python/sdk-runtime/platforms.json': platforms,
+      'apps/cli/config/agent-presets/minimal/agent.cordis.yml': '[]\n',
+    })
+    appWorkspace(root, 'product', '@scope/app', {
+      dependencies: { '@scope/provider': 'workspace:^' },
+    })
+    workspace(root, '@scope/provider', {
+      peerDependencies: { '@scope/service': 'workspace:^' },
+    })
+    workspace(root, '@scope/service', {})
+
+    const result = await verifyRuntimeClosure(root)
+
+    expect(result.failures).toEqual([
+      'runtime -> @scope/app -> @scope/provider -> @scope/service',
+    ])
   })
 })
