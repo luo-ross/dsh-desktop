@@ -1,5 +1,4 @@
 const DEFAULT_CHECK_DELAY_MS = 12_000
-const DEFERRED_CHECK_DELAY_MS = 1_000
 const DEFAULT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
 
 const UPDATE_ERROR_MESSAGE = '更新服务暂时不可用'
@@ -12,8 +11,6 @@ export function createUpdaterController({
   showMessageBox,
   stopBackend,
   permitQuit,
-  deferredUpdateVersion,
-  rememberDownloadedUpdate = async () => undefined,
   platform = process.platform,
   checkDelayMs = DEFAULT_CHECK_DELAY_MS,
   checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS,
@@ -94,7 +91,7 @@ export function createUpdaterController({
     if (started || !app.isPackaged || platform !== 'win32') return
     started = true
     updater.autoDownload = true
-    updater.autoInstallOnAppQuit = true
+    updater.autoInstallOnAppQuit = false
     updater.allowPrerelease = false
     updater.logger = null
 
@@ -123,26 +120,14 @@ export function createUpdaterController({
       })
     })
     updater.on('update-downloaded', (info) => {
-      const installOnThisLaunch = deferredUpdateVersion === info.version
       downloaded = true
       publish({ status: 'downloaded', version: info.version, percent: 100 })
-      void (async () => {
-        try {
-          await rememberDownloadedUpdate(info.version)
-        } catch (error) {
-          console.error('Failed to remember the downloaded desktop update.', error)
-        }
-        if (installOnThisLaunch) await install()
-      })()
     })
     updater.on('error', () => {
       publish({ status: 'error', message: UPDATE_ERROR_MESSAGE })
     })
 
-    setTimeoutFn(
-      () => void check(),
-      deferredUpdateVersion === undefined ? checkDelayMs : DEFERRED_CHECK_DELAY_MS,
-    )
+    setTimeoutFn(() => void check(), checkDelayMs)
     setIntervalFn(() => void check(), checkIntervalMs)
   }
 

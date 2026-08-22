@@ -33,8 +33,6 @@ export function createUpdaterController(options: {
   showMessageBox: (window: unknown, options: Record<string, unknown>) => Promise<{ response: number }>
   stopBackend: () => Promise<void>
   permitQuit: () => void
-  deferredUpdateVersion?: string
-  rememberDownloadedUpdate?: (version: string) => Promise<void>
   platform?: string
   checkDelayMs?: number
   checkIntervalMs?: number

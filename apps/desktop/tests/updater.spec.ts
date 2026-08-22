@@ -25,7 +25,6 @@ class FakeUpdater {
 function setup(options: {
   packaged?: boolean
   failCheck?: boolean
-  deferredUpdateVersion?: string
 } = {}) {
   const updater = new FakeUpdater()
   if (options.failCheck === true) {
@@ -36,7 +35,6 @@ function setup(options: {
   const showMessageBox = vi.fn(async () => ({ response: 0 }))
   const stopBackend = vi.fn(async () => undefined)
   const permitQuit = vi.fn()
-  const rememberDownloadedUpdate = vi.fn(async () => undefined)
   const timers: Array<{ callback: () => void; milliseconds: number }> = []
   const intervals: Array<() => void> = []
   const controller = createUpdaterController({
@@ -46,15 +44,13 @@ function setup(options: {
     showMessageBox,
     stopBackend,
     permitQuit,
-    deferredUpdateVersion: options.deferredUpdateVersion,
-    rememberDownloadedUpdate,
     platform: 'win32',
     setTimeoutFn: (callback, milliseconds) => { timers.push({ callback, milliseconds }); return 0 },
     setIntervalFn: (callback) => { intervals.push(callback); return 0 },
   })
   return {
     updater, send, showMessageBox, stopBackend, permitQuit,
-    rememberDownloadedUpdate, timers, intervals, controller,
+    timers, intervals, controller,
   }
 }
 
@@ -64,7 +60,7 @@ describe('desktop updater controller', () => {
     b.controller.start()
 
     expect(b.updater.autoDownload).toBe(true)
-    expect(b.updater.autoInstallOnAppQuit).toBe(true)
+    expect(b.updater.autoInstallOnAppQuit).toBe(false)
     expect(b.updater.allowPrerelease).toBe(false)
     expect(b.timers).toHaveLength(1)
     expect(b.intervals).toHaveLength(1)
@@ -72,10 +68,6 @@ describe('desktop updater controller', () => {
     b.updater.emit('update-available', { version: '0.1.3' })
     b.updater.emit('download-progress', { percent: 47.6 })
     b.updater.emit('update-downloaded', { version: '0.1.3' })
-
-    await vi.waitFor(() => {
-      expect(b.rememberDownloadedUpdate).toHaveBeenCalledWith('0.1.3')
-    })
 
     expect(b.send).toHaveBeenLastCalledWith('dsh-desktop:update-state', {
       currentVersion: '0.1.2', status: 'downloaded', version: '0.1.3', percent: 100,
@@ -120,29 +112,15 @@ describe('desktop updater controller', () => {
     expect(b.updater.quitAndInstall).toHaveBeenCalledWith(false, true)
   })
 
-  it('automatically installs a previously downloaded update on the next launch', async () => {
-    const b = setup({ deferredUpdateVersion: '0.1.3' })
-    b.controller.start()
-
-    expect(b.timers[0]?.milliseconds).toBe(1_000)
-    b.updater.emit('update-downloaded', { version: '0.1.3' })
-
-    await vi.waitFor(() => {
-      expect(b.updater.quitAndInstall).toHaveBeenCalledWith(false, true)
-    })
-    expect(b.stopBackend).toHaveBeenCalledOnce()
-    expect(b.permitQuit).toHaveBeenCalledOnce()
-  })
-
-  it('does not force-restart when a new update is downloaded for the first time', async () => {
+  it('waits for an explicit install action after downloading an update', async () => {
     const b = setup()
     b.controller.start()
     b.updater.emit('update-downloaded', { version: '0.1.3' })
 
-    await vi.waitFor(() => {
-      expect(b.rememberDownloadedUpdate).toHaveBeenCalledWith('0.1.3')
-    })
+    await Promise.resolve()
     expect(b.updater.quitAndInstall).not.toHaveBeenCalled()
+    expect(b.stopBackend).not.toHaveBeenCalled()
+    expect(b.permitQuit).not.toHaveBeenCalled()
   })
 
   it('does not contact the release service in development', async () => {

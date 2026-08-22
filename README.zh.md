@@ -22,7 +22,7 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 - 受 Codex 启发的浅色桌面皮肤，同时保留上游工作区、会话、模型、设置、工具和权限行为。
 - 无原生标题栏的沉浸式 Windows 窗口和应用内窗口控件，以及由 Electron 直接提供的可靠工作目录选择器。
 - 应用、安装程序、任务栏和快捷方式统一使用 DeepSeek 鲸鱼图标。
-- 通过 GitHub Releases 自动检查稳定版并在后台下载，可一键安装或在下次启动时自动安装。
+- 通过 GitHub Releases 自动检查稳定版并在后台下载；只有用户点击准备就绪的更新操作后才会开始安装。
 
 ## 首次运行与配置
 
