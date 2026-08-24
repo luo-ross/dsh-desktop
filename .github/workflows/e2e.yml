@@ -80,7 +80,7 @@ jobs:
             echo "DEEPSEEK_API_KEY present."
           fi
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: steps.api-key.outputs.available == 'true'
 
       - uses: pnpm/action-setup@v4
