@@ -52,7 +52,7 @@ it.each([false, true])('tracks the Web carrier lifetime when server-first is %s'
   const modules = await ctx.plugin(ClientModuleRegistry)
   const service = ctx.get('clientModules')!
   expect(service.graph().entries).toEqual([])
-  expect(service.fetchBundle(new Request('http://localhost/plugins/missing')).status).toBe(404)
+  expect((await service.fetchBundle(new Request('http://localhost/plugins/missing'))).status).toBe(404)
   if (!serverFirst) {
     expect(routes.size).toBe(0)
     server = await mountServer()
@@ -61,7 +61,7 @@ it.each([false, true])('tracks the Web carrier lifetime when server-first is %s'
   await server!.dispose()
   await expect.poll(() => routes.size).toBe(0)
   expect(modules.state).toBe(FiberState.ACTIVE)
-  expect(service.fetchBundle(new Request('http://localhost/plugins/missing')).status).toBe(404)
+  expect((await service.fetchBundle(new Request('http://localhost/plugins/missing'))).status).toBe(404)
   await mountServer()
   await expect.poll(() => routes.size).toBe(1)
   await modules.dispose()
@@ -507,6 +507,85 @@ describe('client bundle activation', () => {
 
     writeFileSync(`${clientPath}.map`, '{"version":3,"sources":[null]}\n')
     expect(() => construct([packageName])).not.toThrow()
+
+    writeFileSync(`${clientPath}.map`, JSON.stringify({
+      version: 3,
+      names: [],
+      mappings: 'AAAA',
+      sourceRoot: 'http://[',
+      sources: ['src/index.ts'],
+    }))
+    const invalidUrl = constructWithRoute([packageName])
+    const invalidMapUrl = mapUrl(invalidUrl.service.graph().batches[0]!.url)
+    expect(JSON.parse((await routeRequest(invalidUrl.route, invalidMapUrl)).body.toString('utf8'))).toMatchObject({
+      sections: [{ map: { sources: [`/plugins/${packageName}/client.js`] } }],
+    })
+  })
+
+  it('reads a source map only on its first map GET', async () => {
+    const packageName = '@fixture/lazy-source-map'
+    const clientPath = writePackage(packageName)
+    mkdirSync(dirname(clientPath), { recursive: true })
+    writeFileSync(clientPath, 'module.exports = {}\n//# sourceMappingURL=client.js.map')
+    writeFileSync(`${clientPath}.map`, '{')
+    const { service, route } = constructWithRoute([packageName])
+    const batch = service.graph().batches[0]!
+    const sourceMapUrl = mapUrl(batch.url)
+
+    const script = await routeRequest(route, batch.url)
+    expect(script.status).toBe(200)
+    expect((await routeRequest(route, sourceMapUrl, 'HEAD')).body).toHaveLength(0)
+    writeFileSync(`${clientPath}.map`, JSON.stringify({
+      version: 3,
+      names: [],
+      mappings: 'AAAA',
+      sources: ['src/first.ts'],
+    }))
+    const first = await routeRequest(route, sourceMapUrl)
+    expect(JSON.parse(first.body.toString('utf8'))).toMatchObject({
+      sections: [{ map: { sources: [`/plugins/${packageName}/src/first.ts`] } }],
+    })
+
+    writeFileSync(`${clientPath}.map`, JSON.stringify({
+      version: 3,
+      names: [],
+      mappings: 'AAAA',
+      sources: ['src/second.ts'],
+    }))
+    expect((await routeRequest(route, sourceMapUrl)).body).toEqual(first.body)
+    expect((await routeRequest(route, batch.url)).body).toEqual(script.body)
+  })
+
+  it('retains a materialized resource when an unrelated row recomposes the graph', async () => {
+    const stablePackage = '@fixture/stable-source-map'
+    const rebuiltPackage = '@fixture/rebuilt-neighbor'
+    const stablePath = writePackage(stablePackage)
+    const rebuiltPath = writePackage(rebuiltPackage)
+    for (const clientPath of [stablePath, rebuiltPath]) {
+      mkdirSync(dirname(clientPath), { recursive: true })
+      writeFileSync(clientPath, 'module.exports = {}\n//# sourceMappingURL=client.js.map')
+      writeFileSync(`${clientPath}.map`, JSON.stringify({
+        version: 3,
+        names: [],
+        mappings: 'AAAA',
+        sources: ['src/first.ts'],
+      }))
+    }
+    const { service, route } = constructWithRoute([stablePackage, rebuiltPackage])
+    const stableUrl = service.graph().entries.find(entry => entry.id === stablePackage)!.url
+    const stableMapUrl = mapUrl(stableUrl)
+    const first = await routeRequest(route, stableMapUrl)
+
+    writeFileSync(`${stablePath}.map`, JSON.stringify({
+      version: 3,
+      names: [],
+      mappings: 'AAAA',
+      sources: ['src/second.ts'],
+    }))
+    writeFileSync(rebuiltPath, 'module.exports = { rebuilt: true }\n')
+    service.rebuilt(rebuiltPackage)
+
+    expect((await routeRequest(route, stableMapUrl)).body).toEqual(first.body)
   })
 
   it('maps packed combo sections back to each generated client bundle', async () => {
@@ -668,7 +747,7 @@ describe('client bundle activation', () => {
     expect(batchScript.status).toBe(200)
     expect(batchScript.headers?.['cache-control']).toBe('public, max-age=31536000, immutable')
     expect(batchScript.body.toString('utf8')).toContain(`//# sourceMappingURL=${mapUrl(batch.url)}`)
-    const shellResponse = service.fetchBundle(new Request(`dsh-app://app${batch.url}`))
+    const shellResponse = await service.fetchBundle(new Request(`dsh-app://app${batch.url}`))
     expect(shellResponse.status).toBe(200)
     expect(shellResponse.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     expect(await shellResponse.text()).toBe(batchScript.body.toString('utf8'))
