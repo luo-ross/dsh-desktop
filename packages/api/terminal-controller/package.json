@@ -55,6 +55,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh-deque": "workspace:^",
+    "@deepseek-ai/dsh-lazy-require": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "@xterm/headless": "^6.0.0",

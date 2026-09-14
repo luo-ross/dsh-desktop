@@ -1490,6 +1490,9 @@ importers:
       '@deepseek-ai/dsh-deque':
         specifier: workspace:^
         version: link:../packages/util/deque
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../packages/util/lazy-require
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../packages/llm/llm
@@ -1965,6 +1968,9 @@ importers:
       '@deepseek-ai/dsh-deque':
         specifier: workspace:^
         version: link:../../util/deque
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
@@ -2118,6 +2124,9 @@ importers:
 
   packages/attachment/attachment-local:
     dependencies:
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -9179,6 +9188,9 @@ importers:
 
   packages/sandbox/sandbox-windows-acl:
     dependencies:
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       '@deepseek-ai/dsh-win32-process':
         specifier: workspace:^
         version: link:../../subprocess/win32-process
@@ -11512,6 +11524,9 @@ importers:
 
   packages/subprocess/subprocess-local:
     dependencies:
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       '@deepseek-ai/dsh-win32-process':
         specifier: workspace:^
         version: link:../win32-process
@@ -11537,6 +11552,9 @@ importers:
 
   packages/subprocess/win32-process:
     dependencies:
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
@@ -11565,6 +11583,9 @@ importers:
 
   packages/terminal/terminal-bash:
     dependencies:
+      '@deepseek-ai/dsh-lazy-require':
+        specifier: workspace:^
+        version: link:../../util/lazy-require
       '@deepseek-ai/dsh-pwsh-local':
         specifier: workspace:^
         version: link:../../shell/pwsh-local
@@ -12123,6 +12144,12 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/util/launch-environment:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+
+  packages/util/lazy-require:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^

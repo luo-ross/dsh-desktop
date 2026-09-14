@@ -14,8 +14,9 @@ import { userInfo } from 'node:os'
 import { delimiter, extname, isAbsolute, resolve } from 'node:path'
 import type { Duplex } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
-import * as nodePty from 'node-pty'
+import type * as NodePty from 'node-pty'
 import type { IPtyForkOptions } from 'node-pty'
+import { createLazyRequire } from '@deepseek-ai/dsh-lazy-require'
 import { SubprocessRuntime, SubprocessExecutableNotFoundError } from '@deepseek-ai/dsh-subprocess'
 import type {
   SubprocessHandle,
@@ -44,6 +45,8 @@ import { targetEnvironment } from './runner-launch.ts'
 import { createProcessInspector } from './process-inspector.ts'
 import type { ProcessInspector } from './process-inspector.ts'
 import { LocalTerminalHandle } from './terminal.ts'
+
+const requireNodePty = createLazyRequire<typeof NodePty>('node-pty', import.meta.url)
 
 /**
  * Local subprocess service: platform-selected managed ranges, Node-shaped stdio
@@ -280,9 +283,9 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       options.cwd = scope.cwd
       options.env = scope.env
     }
-    let terminal: nodePty.IPty
+    let terminal: NodePty.IPty
     try {
-      terminal = nodePty.spawn(
+      terminal = requireNodePty().spawn(
         scope?.command ?? file,
         scope?.args ?? [...spec.argv.slice(1)],
         options,

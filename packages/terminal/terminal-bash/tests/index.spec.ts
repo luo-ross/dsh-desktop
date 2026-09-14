@@ -158,6 +158,41 @@ describe('BashTerminalBackend startup rollback', () => {
     } satisfies Partial<TerminalBackendCleanupError>))
   })
 
+  it('awaits terminal cleanup when session construction fails', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SandboxPolicyService, { mode: 'danger-full-access', workspaceRoot: '/tmp' })
+    const quiescent = Promise.withResolvers<undefined>()
+    const terminal = {
+      ...terminalHandle(),
+      terminate: vi.fn(() => quiescent.promise),
+    }
+    const constructionStarted = Promise.withResolvers<undefined>()
+    const failure = new Error('terminal emulator unavailable')
+    const backend = new BashTerminalBackend(
+      ctx,
+      config(),
+      async () => terminal,
+      () => {
+        constructionStarted.resolve(undefined)
+        throw failure
+      },
+    )
+
+    const spawning = backend.spawn(spec(agent(ctx)))
+    await constructionStarted.promise
+    expect(terminal.terminate).toHaveBeenCalledOnce()
+    let settled = false
+    void spawning.then(
+      () => { settled = true },
+      () => { settled = true },
+    )
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    quiescent.resolve(undefined)
+    await expect(spawning).rejects.toBe(failure)
+  })
+
   it('starts startup rollback when cancellation wins a stalled initialization', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionProjectionRegistry)

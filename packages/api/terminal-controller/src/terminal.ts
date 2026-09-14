@@ -1,21 +1,14 @@
 /** One PTY, a bounded terminal emulator and its detachable browser followers. */
-import { createRequire } from 'node:module'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { Terminal as HeadlessTerminal } from '@xterm/headless'
 import type { SerializeAddon as Serializer } from '@xterm/addon-serialize'
 import type { SubprocessTerminalHandle } from '@deepseek-ai/dsh-subprocess'
+import { createLazyRequire } from '@deepseek-ai/dsh-lazy-require'
 import { TerminalFollower } from './stream.ts'
 import type { TerminalAttachmentId, TerminalFrame, WebTerminalInfo } from './types.ts'
 
-const { Terminal, SerializeAddon } = loadXterm()
-
-function loadXterm() {
-  // The Preview's CommonJS wrapper owns its outer require binding; these literal calls also retain the CJS entries.
-  const require = createRequire(import.meta.url)
-  const { Terminal } = require('@xterm/headless') as typeof import('@xterm/headless')
-  const { SerializeAddon } = require('@xterm/addon-serialize') as typeof import('@xterm/addon-serialize')
-  return { Terminal, SerializeAddon }
-}
+const requireHeadless = createLazyRequire<typeof import('@xterm/headless')>('@xterm/headless', import.meta.url)
+const requireSerialize = createLazyRequire<typeof import('@xterm/addon-serialize')>('@xterm/addon-serialize', import.meta.url)
 
 /** Process lifetime is independent of follower and component lifetimes. */
 export class BrowserTerminal {
@@ -40,6 +33,8 @@ export class BrowserTerminal {
     scrollback: number,
     private readonly maxBufferedBytes: number,
   ) {
+    const { Terminal } = requireHeadless()
+    const { SerializeAddon } = requireSerialize()
     this.screen = new Terminal({ cols: info.cols, rows: info.rows, scrollback, allowProposedApi: true })
     this.serializer = new SerializeAddon()
     this.screen.loadAddon(this.serializer)

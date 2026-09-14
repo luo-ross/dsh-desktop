@@ -48,6 +48,9 @@
     },
     {
       "path": "../../util/deque"
+    },
+    {
+      "path": "../../util/lazy-require"
     }
   ]
 }
