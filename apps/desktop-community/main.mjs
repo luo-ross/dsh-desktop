@@ -157,7 +157,9 @@ async function waitForBackendHttp(url) {
         request.setTimeout(3_000, () => request.destroy(new Error('HTTP readiness request timed out')))
         request.once('error', reject)
       })
-      if (status >= 200 && status < 300) return
+      // The authenticated launch URL intentionally answers with a redirect
+      // while exchanging its one-time token for the browser cookie.
+      if (status >= 200 && status < 400) return
       lastError = new Error(`HTTP ${String(status)}`)
     } catch (error) {
       lastError = error
@@ -208,7 +210,7 @@ function startBackend() {
     const inspect = (chunk) => {
       output = appendDiagnostic(output, chunk)
       process.stdout.write(chunk)
-      const match = output.match(/dsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/)
+      const match = output.match(/dsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]+)/)
       if (match?.[1]) finish(undefined, match[1])
     }
     const onError = (error) => finish(error)
