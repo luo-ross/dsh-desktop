@@ -21,7 +21,8 @@
  */
 .panel {
   position: absolute;
-  top: 0;
+  /* Frameless desktop windows reserve the titlebar strip above content. */
+  top: var(--dsh-desktop-titlebar-safe-area, 0px);
   right: 0;
   bottom: 0;
   z-index: 10;

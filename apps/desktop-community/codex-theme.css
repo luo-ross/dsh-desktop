@@ -193,14 +193,14 @@ body[data-dsh-desktop-codex-theme] [class*="_card_"]:has(textarea) button[type="
   background: #202124;
 }
 
-body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
+body[data-dsh-desktop-codex-theme] [class*="_rightbarCol_"] {
   border-left: 0;
   background: #ffffff;
 }
 
-body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] > * {
+body[data-dsh-desktop-codex-theme] [data-sidebar-right-panel] {
   box-sizing: border-box;
-  height: 100%;
+  height: auto;
   overflow: hidden;
   border: 1px solid #e1e5e9;
   border-radius: 20px;
@@ -208,7 +208,7 @@ body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] > * {
   box-shadow: 0 4px 14px rgb(15 23 42 / 7%), 0 20px 48px rgb(15 23 42 / 5%);
 }
 
-body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] [class*="_root_"] {
+body[data-dsh-desktop-codex-theme] [data-sidebar-right-panel] [class*="_root_"] {
   border-left: 0;
 }
 
@@ -217,7 +217,7 @@ body[data-dsh-desktop-codex-theme] :focus-visible {
 }
 
 @media (max-width: 1100px) {
-  body[data-dsh-desktop-codex-theme] [class*="_detailsCol_"] {
+  body[data-dsh-desktop-codex-theme] [class*="_rightbarCol_"] {
     padding-right: 8px;
   }
 }
