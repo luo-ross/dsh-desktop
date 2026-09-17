@@ -320,7 +320,6 @@ async function createWindow({ cachedBackend = false } = {}) {
     version: app.getVersion(),
   })
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(loadingPage)}`)
-  await installWindowControls(window)
   return window
 }
 
@@ -496,6 +495,7 @@ if (!hasSingleInstanceLock) {
     const cachedBackend = app.isPackaged
       && isPackagedBackendReady(packagedBackendDestination())
     mainWindow = await createWindow({ cachedBackend })
+    await installWindowControls(mainWindow)
     updaterController = createUpdaterController({
       updater: autoUpdater,
       app,
