@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "backend-contract.d.mts",
+    "tests/backend-contract.spec.ts"
+  ]
+}

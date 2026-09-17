@@ -6,6 +6,16 @@ DSH is an unofficial community desktop edition of [DeepSeek Harness](https://git
 
 > DSH is a community project and is not an official DeepSeek AI product. DeepSeek Harness and the whale mark belong to their respective owner.
 
+It is built on an **everything-is-a-plugin** architecture and powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
+
+Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+
+## Developer preview
+
+DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+
+Review the [safety notice](SAFETY.md) before running the project.
+
 ## Run
 
 Download the latest Windows x64 installer from [GitHub Releases](https://github.com/luo-ross/dsh-desktop/releases/latest). The installer supports a custom destination and creates optional desktop and Start menu shortcuts.
@@ -30,7 +40,7 @@ The startup welcome screen identifies DSH as the unofficial community desktop ed
 
 The wrapper binds only to loopback, disables Node.js integration in the renderer, and opens external HTTP links in the system browser. It adds no telemetry of its own; the bundled upstream Harness and configured model providers retain their own network behavior.
 
-See the [desktop reference](apps/desktop/README.md) for installation, storage, build, troubleshooting, and limitation details.
+See the [desktop reference](apps/desktop-community/README.md) for installation, storage, build, troubleshooting, and limitation details.
 
 ## Run from source
 
@@ -47,7 +57,35 @@ Build the Windows installer with `pnpm run desktop:pack`. Outputs are written to
 
 ## Upstream relationship
 
-This repository carries the DeepSeek Harness source tree so the desktop application can build the real Web UI and backend. Desktop-specific code lives in `apps/desktop`; the upstream project remains the authority for Harness behavior, providers, plugins, and developer documentation. Compatibility-breaking upstream changes are expected while DeepSeek Harness remains in developer preview.
+This repository carries the DeepSeek Harness source tree so the desktop application can build the real Web UI and backend. Desktop-specific code lives in `apps/desktop-community`; the upstream project remains the authority for Harness behavior, providers, plugins, and developer documentation. Compatibility-breaking upstream changes are expected while DeepSeek Harness remains in developer preview.
+
+## Community and support
+
+- Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
+- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
+- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Development
+
+Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+
+For agents, follow [AGENTS.md](AGENTS.md).
+
+## Citation
+
+```bibtex
+@misc{deepseek-harness2026,
+  title={DeepSeek Harness: Everything is a Plugin},
+  author={DeepSeek-AI},
+  year={2026},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
+}
+```
 
 ## License and attribution
 

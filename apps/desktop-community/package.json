@@ -1,0 +1,94 @@
+{
+  "name": "@luo-ross/dsh-desktop",
+  "productName": "DSH",
+  "version": "0.1.20",
+  "description": "Unofficial community desktop edition of DeepSeek Harness",
+  "author": {
+    "name": "luo-ross",
+    "url": "https://github.com/luo-ross"
+  },
+  "homepage": "https://github.com/luo-ross/dsh-desktop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luo-ross/dsh-desktop.git",
+    "directory": "apps/desktop-community"
+  },
+  "bugs": {
+    "url": "https://github.com/luo-ross/dsh-desktop/issues"
+  },
+  "type": "module",
+  "main": "main.mjs",
+  "license": "MIT",
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "tar": "7.4.3"
+  },
+  "scripts": {
+    "start": "electron .",
+    "stage-backend": "node scripts/stage-backend.mjs",
+    "package": "pnpm run stage-backend && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.luoross.dshdesktop",
+    "productName": "DSH",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": {
+      "output": "../../dist-desktop"
+    },
+    "files": [
+      "main.mjs",
+      "backend-contract.mjs",
+      "updater.mjs",
+      "welcome-page.mjs",
+      "window-controls.mjs",
+      "preload.cjs",
+      "codex-theme.css",
+      "scripts/extract-backend.mjs",
+      "build/icon.ico",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../desktop-backend.tar.gz",
+        "to": "backend.tar.gz"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "electronUpdaterCompatibility": ">= 2.16",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DSH-Windows-x64-Setup-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "luo-ross",
+      "repo": "dsh-desktop"
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DSH"
+    }
+  }
+}

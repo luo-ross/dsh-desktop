@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": [
-    "backend-contract.d.mts",
-    "tests/backend-contract.spec.ts"
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/util/home-paths" }
   ]
 }

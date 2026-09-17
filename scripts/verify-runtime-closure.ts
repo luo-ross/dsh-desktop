@@ -30,7 +30,7 @@ interface RuntimePlatform {
 
 type RuntimePlatformManifest = Record<string, RuntimePlatform>
 
-const AGENT_PRESET_GLOB = 'apps/cli/config/agent-presets/*/agent.cordis.yml'
+const AGENT_PRESET_GLOB = 'packages/preset/agent-presets/presets/*/agent.cordis.yml'
 
 export interface RuntimeClosureResult {
   failures: string[]
@@ -50,7 +50,7 @@ export async function verifyRuntimeClosure(
 ): Promise<RuntimeClosureResult> {
   const runtimeManifest = await loadManifest(resolve(root, manifestPath))
   const runtimeName = runtimeManifest.name ?? manifestPath
-  const workspace = await loadWorkspacePackages(root)
+  const workspace = await loadWorkspacePackages(root, manifestPath.startsWith('apps/'))
   const runtimeDependencies = runtimeManifest.dependencies ?? {}
   const platforms = await loadJson<RuntimePlatformManifest>(resolve(root, 'python/sdk-runtime/platforms.json'))
   const presetPaths = globSync(AGENT_PRESET_GLOB, { cwd: root }).sort()
@@ -181,6 +181,7 @@ function disabledOnPlatform(value: unknown, processPlatform: string): boolean {
 function processPlatformForTarget(target: string): string {
   if (target.startsWith('linux-')) return 'linux'
   if (target.startsWith('macos-')) return 'darwin'
+  if (target.startsWith('win-')) return 'win32'
   throw new Error(`verify-runtime-closure: unsupported runtime target ${JSON.stringify(target)}`)
 }
 
@@ -197,8 +198,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-async function loadWorkspacePackages(root: string): Promise<Map<string, WorkspacePackage>> {
-  const paths = globSync(['apps/*/package.json', 'packages/*/*/package.json', 'vendor/*/package.json'], { cwd: root })
+/**
+ * Load the workspace packages a deployment manifest's dependency graph is judged against.
+ * @param root - repository root.
+ * @param includeApplications - whether the manifest deploys the applications in `apps/`.
+ * @returns workspace packages keyed by package name.
+ */
+async function loadWorkspacePackages(root: string, includeApplications: boolean): Promise<Map<string, WorkspacePackage>> {
+  // An application deployment resolves the applications it ships, so its graph
+  // reaches `apps/*`. A repository runtime manifest keeps the package/vendor map
+  // the Python wheel's dependency closure is built from.
+  const patterns = includeApplications
+    ? ['apps/*/package.json', 'packages/*/*/package.json', 'vendor/*/package.json']
+    : ['packages/*/*/package.json', 'vendor/*/package.json']
+  const paths = globSync(patterns, { cwd: root })
     .sort()
     .map(relative => resolve(root, relative))
   const result = new Map<string, WorkspacePackage>()

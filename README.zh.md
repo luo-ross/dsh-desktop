@@ -6,6 +6,16 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 
 > DSH 是社区项目，并非 DeepSeek AI 官方产品。DeepSeek Harness 名称和鲸鱼标志归其相应权利人所有。
 
+它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
+
+文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+
+## 开发者预览
+
+DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+
+运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
+
 <a id="run"></a>
 
 ## 运行
@@ -32,7 +42,7 @@ DSH 是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness
 
 桌面外壳只监听本机回环地址，关闭渲染进程的 Node.js 集成，并使用系统浏览器打开外部 HTTP 链接。外壳本身不增加遥测；安装包内的上游 Harness 和用户配置的模型提供方仍保留各自的网络行为。
 
-安装、存储、构建、故障排查和限制的完整说明参见[桌面版参考文档](apps/desktop/README.zh.md)。
+安装、存储、构建、故障排查和限制的完整说明参见[桌面版参考文档](apps/desktop-community/README.zh.md)。
 
 <a id="run-from-source"></a>
 
@@ -51,7 +61,35 @@ pnpm run desktop:dev
 
 ## 与上游项目的关系
 
-本仓库保留 DeepSeek Harness 源码树，以便桌面应用构建真实的 Web UI 和后端。桌面版专属代码位于 `apps/desktop`；Harness 行为、模型提供方、插件和开发文档仍以上游项目为准。DeepSeek Harness 仍处于开发者预览阶段，上游可能发生破坏兼容性的变更。
+本仓库保留 DeepSeek Harness 源码树，以便桌面应用构建真实的 Web UI 和后端。桌面版专属代码位于 `apps/desktop-community`；Harness 行为、模型提供方、插件和开发文档仍以上游项目为准。DeepSeek Harness 仍处于开发者预览阶段，上游可能发生破坏兼容性的变更。
+
+## 社区与支持
+
+- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
+- 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
+- 欢迎加入 DeepSeek Harness 企微群：扫码添加企微小助手并填写入群问卷，完成后小助手会邀请你入群。
+
+## 参与贡献
+
+参见 [CONTRIBUTING.md](CONTRIBUTING.zh.md)。
+
+## 开发
+
+请先阅读[开发指南](docs/development.zh.md)与[架构文档](docs/architecture.zh.md)。
+
+面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
+
+## 引用
+
+```bibtex
+@misc{deepseek-harness2026,
+  title={DeepSeek Harness: Everything is a Plugin},
+  author={DeepSeek-AI},
+  year={2026},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
+}
+```
 
 ## 许可证与归属
 
