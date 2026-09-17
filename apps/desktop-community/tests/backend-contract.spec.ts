@@ -17,14 +17,9 @@ describe('packaged backend contract', () => {
       readFileSync(resolve(root, 'python/sdk-runtime/package.json'), 'utf8'),
     ) as { dependencies?: Record<string, string> }
 
-    // The desktop backend pins the published CLI application rather than the
-    // workspace member, so the canonical runtime comparison excludes that one
-    // entry; every other canonical dependency must be carried here too.
-    const canonicalDependencies = { ...canonicalRuntimeManifest.dependencies }
-    delete canonicalDependencies['@deepseek-ai/dsh']
-
     expect(backendManifest.dependencies).toHaveProperty('@deepseek-ai/cordis-plugin-group')
-    expect(backendManifest.dependencies).toMatchObject(canonicalDependencies)
+    expect(backendManifest.dependencies).toMatchObject(canonicalRuntimeManifest.dependencies ?? {})
+    expect(backendManifest.dependencies?.['@deepseek-ai/dsh']).toBe('workspace:^')
     expect(BACKEND_RUNTIME_PATHS).toContainEqual([
       'node_modules', '@deepseek-ai', 'cordis-plugin-group', 'package.json',
     ])
