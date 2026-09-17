@@ -33,7 +33,7 @@
     "@deepseek-ai/dsh-loader-smoke": "workspace:*",
     "@deepseek-ai/dsh-session-format": "workspace:^",
     "js-yaml": "^4.2.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
