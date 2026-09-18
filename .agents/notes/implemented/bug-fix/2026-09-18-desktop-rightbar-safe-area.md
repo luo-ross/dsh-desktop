@@ -12,6 +12,10 @@ The current client replaced the old `details` column with `rightbar`, but the co
 
 The right Sidebar panel starts at `--dsh-desktop-titlebar-safe-area` in normal mode and keeps `inset: 0` in fullscreen mode. The desktop skin targets the new rightbar column and panel attributes.
 
+## Alternatives considered
+
+Leaving the old `details` selectors would keep the right Sidebar at the window edge. Applying an offset to every mode would change the existing fullscreen presentation, so the shared token is used only in normal mode.
+
 ## Consequences
 
 Normal right Sidebar tabs and content remain readable below the native window controls. Fullscreen right Sidebar presentation is unchanged, and web builds retain their zero-offset default.

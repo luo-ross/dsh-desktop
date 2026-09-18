@@ -1,7 +1,8 @@
 /* Electron-only visual skin matching the light Codex desktop workspace. */
 body[data-dsh-desktop-codex-theme] {
   color-scheme: light;
-  --dsh-desktop-titlebar-safe-area: 30px;
+  /* Keep the first content row below the 38px frameless window controls. */
+  --dsh-desktop-titlebar-safe-area: 44px;
   --dsw-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --dsw-alias-bg-base: #ffffff;
   --dsw-alias-bg-layer-1: #ffffff;
