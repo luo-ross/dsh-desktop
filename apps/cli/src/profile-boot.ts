@@ -302,7 +302,11 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   )
 
   const packaged = (process as NodeJS.Process & { pkg?: unknown }).pkg !== undefined
-  const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'runtime'
+  // Electron's ELECTRON_RUN_AS_NODE child does not expose an Electron module
+  // context to node-addon-require-builtin, so retain disk-link resolution for
+  // the community desktop backend while keeping runtime resolution elsewhere.
+  const electronChild = process.env.ELECTRON_RUN_AS_NODE === '1'
+  const resolutionMode = packaged ? 'runtime' : electronChild ? 'link' : options.resolutionMode ?? 'runtime'
   const composed = await composeProfile(
     options.profile, options.patchFiles, resolutionMode, options.fromDefaultProfile,
   )
