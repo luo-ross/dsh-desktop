@@ -302,7 +302,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   )
 
   const packaged = (process as NodeJS.Process & { pkg?: unknown }).pkg !== undefined
-  const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'link'
+  const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'runtime'
   const composed = await composeProfile(
     options.profile, options.patchFiles, resolutionMode, options.fromDefaultProfile,
   )
