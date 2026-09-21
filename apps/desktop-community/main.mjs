@@ -45,7 +45,10 @@ function isPackagedBackendReady(root) {
 }
 
 function packagedBackendDestination() {
-  return join(app.getPath('userData'), `backend-${app.getVersion()}`)
+  // The runtime-resolution fix changes the extracted backend contents while
+  // keeping the desktop version for the in-place v0.1.21 replacement. Use a
+  // cache suffix so existing broken backend-0.1.21 directories are ignored.
+  return join(app.getPath('userData'), `backend-${app.getVersion()}-electron43`)
 }
 
 function updateStartupStatus(status, detail = '', progress = 18) {
