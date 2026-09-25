@@ -55,7 +55,7 @@
     "react-dom": "^18.2.0",
     "typescript": "^6.0.3",
     "vite": "^6.0.0",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "ws": "8.21.0",
     "@deepseek-ai/dsh-launch-environment": "workspace:^",
     "@deepseek-ai/dsh-subprocess-local": "workspace:^",
