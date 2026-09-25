@@ -215,6 +215,31 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(accept).toHaveBeenCalledOnce()
   })
 
+  it('sends the base request when a chat extension cannot be serialized', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const error = new RangeError('Invalid string length')
+    const accept = vi.fn()
+    const onExtensionsOmitted = vi.fn()
+    const adapter = new DeepSeekAdapter({
+      options: () => resolveAdapterOptions({ protocol: 'chat-completions', baseURL: server.url }),
+      resolveApiKey: () => Promise.resolve('k'),
+      resolveUserId: () => TEST_USER_ID,
+      prepareExtensions: () => Promise.resolve({
+        fields: { dsh_test: { toJSON: () => { throw error } } },
+        accept,
+      }) as never,
+      onExtensionsOmitted,
+    })
+
+    await drain(adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [] }))
+    expect(server.requests).toHaveLength(1)
+    expect(server.requests[0]).not.toHaveProperty('dsh_test')
+    expect(accept).not.toHaveBeenCalled()
+    expect(onExtensionsOmitted).toHaveBeenCalledWith({
+      provider: 'deepseek-official', model: 'm', fields: ['dsh_test'], error,
+    })
+  })
+
   it('fails before fetch on extension preparation or base-field collision', async () => {
     const server = await mockServer([])
     const base = {

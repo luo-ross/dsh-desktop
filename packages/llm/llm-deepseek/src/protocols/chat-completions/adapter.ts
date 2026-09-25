@@ -321,7 +321,9 @@ export class ChatCompletionsAdapter extends LlmAdapter {
         signal,
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
         ...options.purpose === undefined ? {} : { purpose: options.purpose },
-      }, this.config.prepareExtensions)
+      }, this.config.prepareExtensions, (fields, error) => {
+        this.config.onExtensionsOmitted?.({ provider: options.provider, model: options.model, fields, error })
+      })
 
       // TODO(http): adopt the Cordis HTTP service when shared transport configuration
       // outweighs its additional runtime dependencies.

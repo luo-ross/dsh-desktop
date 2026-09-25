@@ -35,6 +35,8 @@ export interface AdapterDependencies {
   prepareExtensions: DeepSeekAdapterOptions['prepareExtensions']
   /** Report discarded replay metadata without exposing durable content or signatures. */
   onReplayDegrade?: (detail: { provider: string; model: string; reason: string }) => void
+  /** Report extension fields omitted when the merged request cannot be serialized. */
+  onExtensionsOmitted?: DeepSeekAdapterOptions['onExtensionsOmitted']
 }
 
 /** DeepSeek provider using Messages content and native thinking replay. */
@@ -117,7 +119,9 @@ export class DeepSeekMessagesAdapter extends LlmAdapter {
         signal,
         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
         ...options.purpose === undefined ? {} : { purpose: options.purpose },
-      }, this.dependencies.prepareExtensions)
+      }, this.dependencies.prepareExtensions, (fields, error) => {
+        this.dependencies.onExtensionsOmitted?.({ provider: options.provider, model: options.model, fields, error })
+      })
       signal.throwIfAborted()
       const response = await fetch(`${connection.baseURL.replace(/\/+$/u, '')}/v1/messages`, {
         method: 'POST', signal, body: extensions.payload, redirect: 'error',

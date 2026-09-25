@@ -32,6 +32,7 @@ export class DeepSeekAdapter extends LlmAdapter {
           files: () => this.files,
           prepareExtensions: this.dependencies.prepareExtensions,
           ...this.dependencies.onReplayDegrade === undefined ? {} : { onReplayDegrade: this.dependencies.onReplayDegrade },
+          ...this.dependencies.onExtensionsOmitted === undefined ? {} : { onExtensionsOmitted: this.dependencies.onExtensionsOmitted },
         })
       case 'chat-completions':
         return new ChatCompletionsAdapter({ ...this.dependencies, options: () => connection, resolveFiles: () => this.files })

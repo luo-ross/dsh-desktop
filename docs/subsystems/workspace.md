@@ -401,7 +401,7 @@ Host Remote file reads and workspace directory observations over the composed fi
  * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
  * @param path - workspace path, absolute or relative to the workspace root.
  * @param signal - caller cancellation.
- * @returns the directory's children in the backend's stable name order, bounded by the entry cap.
+ * @returns the directory's children in the backend's stable name order, bounded by the entry cap. A final directory link is followed only when its resolved target remains inside the workspace.
  */
 @Remote async list(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceDirectoryListing>
 

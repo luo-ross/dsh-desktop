@@ -332,11 +332,12 @@ export class WorkspaceFiles extends TypertRemoteService {
    * @param path - workspace path, absolute or relative to the workspace root.
    * @param signal - caller cancellation.
    * @returns the directory's children in the backend's stable name order, bounded by the entry cap.
+   *   A final directory link is followed only when its resolved target remains inside the workspace.
    */
   @Remote
   async list(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): Promise<WorkspaceDirectoryListing> {
     const { root, workspaceRoot, entry } = await this.inspect(workspaceFileScope, path, signal)
-    if (entry.type !== 'directory') {
+    if (entry.type !== 'directory' && entry.type !== 'symlink') {
       throw new RemoteError(
         'workspace-file/not-directory',
         `"${path}" is a ${entry.type}`,
@@ -344,6 +345,12 @@ export class WorkspaceFiles extends TypertRemoteService {
       )
     }
     const target = await this.confine(root, workspaceRoot, path, signal)
+    if (entry.type === 'symlink') {
+      const info = await this.ctx.fs.stat(target, signal)
+      if (info?.type !== 'directory') {
+        throw new RemoteError('workspace-file/not-directory', `"${path}" does not resolve to a directory`, { path, kind: 'symlink' })
+      }
+    }
     const children = await this.ctx.fs.listDir(target, signal)
     return {
       path: workspacePathOf(this.ctx.fs.fileUrl(root), this.ctx.fs.fileUrl(target)),

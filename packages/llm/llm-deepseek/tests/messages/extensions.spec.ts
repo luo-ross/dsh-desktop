@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, LoggerLevel } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
 import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import type { DeepSeekLlmApiExtensionRequest } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
@@ -22,7 +22,26 @@ afterEach(async () => {
   while (cleanup.length) await cleanup.pop()!()
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
+
+/** Fail serialization only when the merged request owns one extension field. */
+async function withExtensionSerializationFailure<T>(
+  field: string,
+  work: () => Promise<T>,
+): Promise<{ result: T; error: RangeError }> {
+  const error = new RangeError('Invalid string length')
+  const stringify = JSON.stringify.bind(JSON)
+  const spy = vi.spyOn(JSON, 'stringify').mockImplementation((value: unknown, replacer?: (number | string)[] | null, space?: string | number) => {
+    if (typeof value === 'object' && value !== null && Object.hasOwn(value, field)) throw error
+    return stringify(value, replacer, space)
+  })
+  try {
+    return { result: await work(), error }
+  } finally {
+    spy.mockRestore()
+  }
+}
 
 async function boot() {
   const home = await mkdtemp(join(tmpdir(), 'dsh-messages-extensions-'))
@@ -102,5 +121,33 @@ describe('Messages request extensions', () => {
     const result = await assemble(ctx.llm.stream(options()))
     expect(result.assembler.finish).toMatchObject({ kind: 'error', failure: { code: 'REQUEST_EXTENSION' } })
     expect(result.message.content).toEqual([])
+  })
+
+  it('sends the base request when an extension makes the merged body unserializable', async () => {
+    const ctx = await boot()
+    const warnings: unknown[][] = []
+    ctx.logger.exporter({
+      levels: { default: LoggerLevel.WARN },
+      export: (message) => { if (message.type === 'warn') warnings.push(message.args) },
+    })
+    const accept = vi.fn()
+    ctx.deepseekLlmApiExtensions.register('dsh_messages_test', {
+      prepare: () => ({ value: { value: 'log' }, accept }),
+    })
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(sse(textEvents)))
+    vi.stubGlobal('fetch', fetch)
+
+    const { result, error } = await withExtensionSerializationFailure('dsh_messages_test', () => assemble(ctx.llm.stream(options())))
+    expect(result.assembler.finish.kind).toBe('stop')
+    const body = fetch.mock.calls[0]?.[1]?.body
+    if (typeof body !== 'string') throw new Error('Expected a serialized Messages request')
+    expect(JSON.parse(body)).toMatchObject({ messages: [{ role: 'user' }] })
+    expect(JSON.parse(body)).not.toHaveProperty('dsh_messages_test')
+    expect(accept).not.toHaveBeenCalled()
+    expect(warnings).toContainEqual([
+      'llm-deepseek: sending route "deepseek-official/deepseek-v4-flash" without request extension fields dsh_messages_test'
+        + ' because they failed to serialize: %o',
+      error,
+    ])
   })
 })

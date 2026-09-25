@@ -56,7 +56,7 @@ store 是 Slot 标准件：每会话一个独占实例，按 tab id 分桶，持
 
 face 是树唯一的异步半边。`start(tabId, root, signal)` 以根展开态播种桶并列出根；`toggle(tabId, path, loaded, signal)` 翻转展开集合并只在第一次列出该层；`load(tabId, path, signal)` 标 `loading`，调 `remote.workspaceFiles.list(sessionId, absolutePath, signal)`，写 `ready` 或 `failed`。适配层保留列表的 `entries` 与 `truncated`、丢弃其工作区相对 `path`：树里每个键都是绝对路径，子键 = 父路径以 `/` 拼上条目名。折叠保留该层，再展开直接从内存画不再请求；失败的层同样保留、再展开不重试——重试靠重新读取。owner 的 `signal` 终结一个桶：abort 时忘掉该 tab，其后才结算的列表什么也不写，已挂载的体也不会给 signal 已触发的桶重新播种。
 
-行序是读者的序，不是端点的序：目录在前，文件与其他条目在后，组内按 `Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })`，于是 `file2` 排在 `file10` 前、大小写不拆开列表。dotfiles 与其他名字一样显示；Host 返回的东西树一个不过滤。三种条目类型画法不同：`directory` 是带 `aria-expanded` 的按钮、开/闭文件夹图标，子层每级缩进 14px；`file` 是带文档图标的按钮，没有大小列；`other`（符号链接、套接字、设备）是灰色、不可聚焦的 span，带 `aria-disabled` 与「不能打开」的提示，这样目录被完整报告，又不提供一个注定失败的点击。被 Host 按 `maxEntries` 上限截断的层在条目末尾以 `truncated` 标记收尾；空层显示 `empty`；进行中的列表在其目录下显示 `loading`。
+行序是读者的序，不是端点的序：目录在前，文件与其他条目在后，组内按 `Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })`，于是 `file2` 排在 `file10` 前、大小写不拆开列表。dotfiles 与其他名字一样显示；Host 返回的东西树一个不过滤。三种条目类型画法不同：`directory` 是带 `aria-expanded` 的按钮、开/闭文件夹图标，子层每级缩进 14px；`file` 是带文档图标的按钮，没有大小列；`other`（悬空符号链接、套接字、设备）是灰色、不可聚焦的 span，带 `aria-disabled` 与「不能打开」的提示。工作区内的目录链接报告为 `directory`，可以展开其目标。被 Host 按 `maxEntries` 上限截断的层在条目末尾以 `truncated` 标记收尾；空层显示 `empty`；进行中的列表在其目录下显示 `loading`。
 
 点文件即 `tabActions.openResource(fileAddressFor(sessionId, root, absolutePath))`：条目在树根之下的绝对路径成为每段百分号编码的 `dsh-resource://file/session/<sessionId>/<相对根的路径>` 地址。树从不指名查看器：由注册表的认领决定谁画这个地址（今天是 `fallback` 档的 `text`），一个在其上认领 `dsh-resource://file/**` 的扩展接走点击而树无需改动。打开落在点击时文件树 tab 所在的那个 pane，同地址已开着的 tab 被聚焦而不复制——两者都是导航控制器的缺省。用户明确拍过：从树里打开的文件不强制分格；它在树所在处开一个新 tab。
 

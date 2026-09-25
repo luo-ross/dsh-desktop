@@ -43,7 +43,7 @@ Web 客户端需要从一个未必在 Host 机器上的浏览器查看会话工�
 - **`read`** 返回一个行窗口 `WorkspaceFileText = WorkspaceFileStat & { offset, text, lines, eof }`；`lines` 计页内行数，使只含一个空行的页（`text: ''`、`lines: 1`）与越过文件末尾的页（`lines: 0`）可区分。`range.offset` 是 1 起算的首行，缺省 1；`range.limit` 是最多行数，缺省 `maxLines` 且不得超过。行以 `\n` 结束，末尾的 `\n` 终止最后一行而不是开启一空行；`text` 以 `\n` 连接本页各行且不带终止符；页含最后一行时 `eof` 为 true，越过末尾的 offset 返回 `eof` 为 true 的空页。切页器沿 `streamText` 前进，数过窗口前的行而不保留，把每个窗内片段先按 `maxBytes` 核准再缓冲，并在越过窗口的第一个字符处返回，因此任意大小的文件只花一页内存。页上的 `version` 与 `bytes` 来自流之前的那次 stat。
 - **`readBytes`** 返回一个原始字节窗口 `WorkspaceFileBytes = WorkspaceFileStat & { offset, data, eof }`。`range.offset` 是 0 起算的首字节，缺省 0；`range.length` 是最多字节数，缺省 `maxBytes` 且不得超过。`data` 为 base64，文件在窗内结束则短于 `length`，位于或越过末尾则为空；窗口含最后一个字节时 `eof` 为 true。不做任何解码，也不按二进制拒绝。`read` 按行分页、绝不按字节；字节窗口走 `readBytes`。
 - **`readAll` 与 `readRelated`** 在 `maxFileBytes` 上限内返回完整的 `WorkspaceFileBytes`。`readRelated` 从基准文件所在目录解析相对文件系统路径；Host 对两个文件执行相同的普通文件检查和后端读取权限。[Document Preview](2026-09-08-document-preview-operations.zh.md) 负责其加载与地址语义。
-- **`list`** 返回 `WorkspaceDirectoryListing { path, entries, truncated }`：被列目录相对根的工作区路径（根为空串）、其直接子项按后端的稳定名序以 `{ name, type, size? }` 给出，以及 `maxEntries` 是否截断了列表。`type` 为 `file`、`directory` 或 `other`；符号链接子项报告其指向目标的类型，悬空者为 `other`，而打开这样的子项仍会在下文的链接关被拒。dotfile 照常列出，不做任何过滤。
+- **`list`** 返回 `WorkspaceDirectoryListing { path, entries, truncated }`：被列目录相对根的工作区路径（根为空串）、其直接子项按后端的稳定名序以 `{ name, type, size? }` 给出，以及 `maxEntries` 是否截断了列表。`type` 为 `file`、`directory` 或 `other`；工作区内的目录链接会经目标列举，指向文件或悬空的链接无法列举。此区别由[目录链接列举决策](../bug-fix/2026-09-18-windows-directory-junction-listing.zh.md)负责。dotfile 照常列出，不做任何过滤。
 - **`changes`** 产出 `WorkspaceFileWatchFrame`：在观察队列注册且工作区根解析完成后先发 `{ kind: 'ready' }`，随后为 `{ kind: 'change', change }`。载荷 `WorkspaceFileChange` 对存在的文件为 `{ absolutePath, version }`，对消失的文件为 `{ absolutePath, absent: true }`。来源是工作区根内的 `fs/observed`，不监视操作系统。首次拉取后的观察都会排队，包括根解析期间的观察；取消或插件释放会结束该代流。
 
 ### 线路上的路径
@@ -56,7 +56,7 @@ Web 客户端需要从一个未必在 Host 机器上的浏览器查看会话工�
 
 `read`、`readBytes`、`readAll`、`readRelated` 与 `stat` 共享普通文件检查，之后依赖文件系统后端的读取权限。`list` 共享路径检查，但还会检查工作区包含关系；`changes` 则把观察过滤到工作区根内。服务执行以下检查：
 
-1. **路径本身。** `lstat` 在跟随任何东西之前检查路径：缺失路径为 `not-found`；符号链接——不论指向哪里，包括指回工作区内——对文件方法为 `not-regular-file`（kind 为 `symlink`），对 `list` 为 `not-directory`。空路径是 `gateway/bad-request`。
+1. **路径本身。** `lstat` 在跟随任何东西之前检查路径：缺失路径为 `not-found`；符号链接——不论指向哪里，包括指回工作区内——对文件方法为 `not-regular-file`（kind 为 `symlink`）。`list` 仅在末端符号链接解析到工作区内且目标为目录时才跟随；否则返回 `outside-workspace` 或 `not-directory`。空路径是 `gateway/bad-request`。
 2. **`list` 的工作区包含。** 目录解析为目标，由 `ctx.fs.contains(root, target)` 判定，其中 `root` 是从所选 Session header 解析出的 `WorkspaceFileScope.workspaceRoot`。`..` 爬出或根外绝对目录为 `outside-workspace`。`changes` 对观察到的目标使用相同的后端包含判定。
 3. **上限。** 超过 `maxBytes` 的页或窗口，或 `read` 索要超过 `maxLines` 的行数，一律拒绝、绝不截短，因为悄悄截短的页读起来就像整页；超过 `maxEntries` 的列表被截断并如实报告。全文及关联文件读取超过 `maxFileBytes` 时被拒绝。
 4. **文本。** 仅限 `read`：到页末为止不是 UTF-8 的内容、后端 8 KiB 开头样本里的 NUL 字节，或页内任何位置的 NUL 字节，都是 `not-text`；页之后的字节不检查。
@@ -136,13 +136,13 @@ Client 导出向 `ctx.resources` 注册一个 `ResourceProvider<'file'>`，存�
 - 每个文件系统提供者都提供开窗的原始读取；`fs-local` 直接定位到所请求的偏移量。
 - 线路上的路径是规范的：`absolutePath` 与变更帧以符号链接已解析的拼法命名文件。跟随者绑定到成功的 `stat.absolutePath`，因此同一文件的另一种拼法——经符号链接到达的工作区根——也使用该规范变更键。
 - 变更帧只报告 agent 自己的操作。用户编辑器、shell 或子进程改动的文件不产生帧；agent 仅仅读取一个被别处改动的文件却会产生帧，因为读取观察到了新版本。
-- 文件类型检查先于后端读取，`list` 也先报种类再报根外位置。页的 `version` 可能落后内容一次写入，停滞的 `changes` 消费者会让 Host 内存增长，因为一代流的队列无界；每一条都是包 README 记录在册的已知取舍。
+- 文件类型检查先于后端读取。解析到工作区外的目录链接先被包含检查拒绝，不会列举其目标。页的 `version` 可能落后内容一次写入，停滞的 `changes` 消费者会让 Host 内存增长，因为一代流的队列无界；每一条都是包 README 记录在册的已知取舍。
 - `file` 资源推送变更而非内容，因此预览不靠载荷就得知文件已更新并读取它想要的页；失败的打开继续跟随地址，因此 agent 创建该文件时 tab 无需用户动作即恢复正常。
 - `readBytes` 尚无随包交付的消费方；Document Preview 对整文件格式使用 `readAll`。
 
 ## Testing
 
-`packages/api/workspace-files/tests` 中的 Host spec 覆盖 live 与 cold subagent Session 的 header-only scope 解析、部署 fallback、缺失身份与 lookup 释放；分页读取（整文件、嵌套路径、空文件、多字节 UTF-8、行窗口边界、缺省与拒绝的 limit、保留回车）；字节窗口（缺省、中段与尾窗、越界与空文件、base64 往返、版本、上限、坏范围以及无大小时的 `eof`）；`stat`；工作区外读取及后端拒绝；`list` 的包含、截断、符号链接与 `not-directory`；以及由 `fs/observed` 驱动并按根过滤的 `changes`。Client spec 覆盖提供者帧、变更流、不支持地址及注册与释放。`fs/fs` 与 `fs-local` spec 钉住 `readByteRange`；`dsh-util-workspace-path` spec 钉住文件地址语法。connection fixture 为 web e2e 套件提供 `stat`、分页 `read`、`list` 与一帧可选启用的 `changes`。
+`packages/api/workspace-files/tests` 中的 Host spec 覆盖 live 与 cold subagent Session 的 header-only scope 解析、部署 fallback、缺失身份与 lookup 释放；分页读取（整文件、嵌套路径、空文件、多字节 UTF-8、行窗口边界、缺省与拒绝的 limit、保留回车）；字节窗口（缺省、中段与尾窗、越界与空文件、base64 往返、版本、上限、坏范围以及无大小时的 `eof`）；`stat`；工作区外读取及后端拒绝；`list` 的包含、截断、工作区内与越界目录链接、悬空链接、符号链接子项与 `not-directory`；以及由 `fs/observed` 驱动并按根过滤的 `changes`。Client spec 覆盖提供者帧、变更流、不支持地址及注册与释放。`fs/fs` 与 `fs-local` spec 钉住 `readByteRange`；`dsh-util-workspace-path` spec 钉住文件地址语法。connection fixture 为 web e2e 套件提供 `stat`、分页 `read`、`list` 与一帧可选启用的 `changes`。
 
 ## Deferred
 

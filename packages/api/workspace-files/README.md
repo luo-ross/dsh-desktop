@@ -51,7 +51,7 @@ Mount the package beside `dsh-fs`, `dsh-sandbox-policy`, the Session store, and 
 
 ### File-read and directory checks
 
-Every operation first uses `lstat` to reject a missing path, a final symlink, or the wrong file kind. File operations then resolve and read through the composed filesystem without an additional workspace-containment check. `list` alone requires the resolved directory to remain inside the workspace root. The configured page, window, complete-file, and listing caps still apply. Text pages additionally reject invalid UTF-8 and NUL bytes; byte reads do not decode content. An empty path is a `gateway/bad-request`.
+File operations use `lstat` to reject a missing path, a final symlink, or the wrong file kind before resolving and reading through the composed filesystem. They do not add a workspace-containment check. `list` follows a final directory link only after resolving it inside the workspace root and confirming that its target is a directory; links outside the root fail with `workspace-file/outside-workspace`, and dangling or non-directory links fail with `workspace-file/not-directory`. The configured page, window, complete-file, and listing caps still apply. Text pages additionally reject invalid UTF-8 and NUL bytes; byte reads do not decode content. An empty path is a `gateway/bad-request`.
 
 ### The change feed
 
@@ -70,7 +70,7 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### Failures
 
-Each failure is one `RemoteError` code with typed details, declared in [`src/types.ts`](src/types.ts): `workspace-file/not-found`, `workspace-file/outside-workspace` (directory listing only), `workspace-file/too-large` (with `limit`, the applicable page, window, or complete-file cap), `workspace-file/not-text`, `workspace-file/not-regular-file` (`kind`: `directory`, `symlink`, or `other`), and `workspace-file/not-directory` (`kind`: `file`, `symlink`, or `other`). Callers branch on the code, never on message text.
+Each failure is one `RemoteError` code with typed details, declared in [`src/types.ts`](src/types.ts): `workspace-file/not-found`, `workspace-file/outside-workspace` (directory listing only), `workspace-file/too-large` (with `limit`, the applicable page, window, or complete-file cap), `workspace-file/not-text`, `workspace-file/not-regular-file` (`kind`: `directory`, `symlink`, or `other`), and `workspace-file/not-directory` (`kind`: `file`, `symlink`, or `other`; a final directory link uses this code when its target is missing or is not a directory). Callers branch on the code, never on message text.
 
 ### Client file resources
 

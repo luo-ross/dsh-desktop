@@ -91,6 +91,8 @@ export interface DeepSeekConnectionOptions {
 export interface DeepSeekAdapterOptions {
   /** Report unusable native Messages replay metadata without exposing content or signatures. */
   onReplayDegrade?: (detail: { provider: string; model: string; reason: string }) => void
+  /** Report extension fields omitted when the merged request cannot be serialized. */
+  onExtensionsOmitted?: (detail: { provider: string; model: string; fields: readonly string[]; error: unknown }) => void
   /** Current validated connection facts; called once per operation. */
   options: () => DeepSeekConnectionOptions
   /**
